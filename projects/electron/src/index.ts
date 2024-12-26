@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import started from 'electron-squirrel-startup';
+import started from "electron-squirrel-startup";
 import path from "path";
 // import url, { fileURLToPath } from "url";
 import url from "url";
@@ -38,7 +38,6 @@ if (started) {
 let have_warned_hw_accel_setting = false;
 
 const createWindow = (): void => {
-
     ipcMain.handle("bazzo", (event, arg0, arg1) => {
         console.log(`bazzo! ${arg0} ${arg1}`);
         return 42;
@@ -57,7 +56,7 @@ const createWindow = (): void => {
             // contextIsolation: false,
             // nodeIntegration: true,
             // spellcheck: false,
-            preload: path.join(__dirname, "preload.js"),
+            preload: path.join(__dirname, "preload.js")
         }
     });
 
@@ -83,7 +82,7 @@ app.whenReady().then(() => {
 
     // On OS X it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    app.on('activate', () => {
+    app.on("activate", () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         }

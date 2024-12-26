@@ -61,12 +61,12 @@ export async function example() {
     await engine.setoption("MultiPV", "4");
     await engine.isready();
     engine.position("startpos", ["e2e4", "e7e5"]);
-    engine.info$.subscribe(function (info: Info) { });
-    engine.bestmove$.subscribe(function (bestmove: BestMove) { });
+    engine.info$.subscribe(function (info: Info) {});
+    engine.bestmove$.subscribe(function (bestmove: BestMove) {});
     engine.go({ depth: 4 });
     setTimeout(async () => {
         const bestmove = await engine.stop();
-        bestmove.bestmove
+        bestmove.bestmove;
         await engine.dehydrate();
     }, 5000);
 }
@@ -151,11 +151,11 @@ export async function example() {
  */
 export class Engine {
     id: { name: string; author: string };
-    readonly options: Map<string, UciOption> = new Map();;
+    readonly options: Map<string, UciOption> = new Map();
     exe: ChildProcess;
     private readonly emitter: TypeSafeEventEmitter<Events> = new EventEmitter();
-    readonly info$: Observable<Info> = fromEvent(this.emitter, 'info') as Observable<Info>;
-    readonly bestmove$: Observable<BestMove> = fromEvent(this.emitter, 'bestmove') as Observable<BestMove>;
+    readonly info$: Observable<Info> = fromEvent(this.emitter, "info") as Observable<Info>;
+    readonly bestmove$: Observable<BestMove> = fromEvent(this.emitter, "bestmove") as Observable<BestMove>;
     /**
      * Create a new Engine instance. At first the Engine is uninitialized;
      * engine id and options are empty. It must be {@link #Engine#init}'ed.
@@ -339,7 +339,7 @@ export class Engine {
      * @return {promise<Engine>} itself (the Engine instance)
      * @throws {Error} if engine process is not running
      */
-    async position(fen: string | 'startpos', moves: string[]): Promise<this> {
+    async position(fen: string | "startpos", moves: string[]): Promise<this> {
         //can be startpos or fen string
         let cmd;
         if (fen === "startpos") {

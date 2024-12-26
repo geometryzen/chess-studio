@@ -1,7 +1,7 @@
 import { REGEX } from "./const.js";
 
 export interface UciOption {
-    type: 'check' | 'spin' | 'combo' | 'button' | 'string';
+    type: "check" | "spin" | "combo" | "button" | "string";
     default?: boolean | number | string;
     min?: number;
     max?: number;
@@ -12,10 +12,10 @@ export function parseOption(line: string): { [name: string]: UciOption } {
     const parsed = REGEX.option.exec(line);
     if (!parsed) return null;
 
-    console.log(`parsed[2] => ${parsed[2]}`)
+    console.log(`parsed[2] => ${parsed[2]}`);
 
     const option: UciOption = {
-        type: parsed[2] as 'check' | 'spin' | 'combo' | 'button' | 'string'
+        type: parsed[2] as "check" | "spin" | "combo" | "button" | "string"
     };
 
     switch (parsed[2]) {

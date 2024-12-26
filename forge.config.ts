@@ -3,10 +3,10 @@ import { MakerRpm } from "@electron-forge/maker-rpm";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
-import { FusesPlugin } from '@electron-forge/plugin-fuses';
-import { PublisherGithub } from '@electron-forge/publisher-github';
-import type { ForgeConfig } from '@electron-forge/shared-types';
-import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import { FusesPlugin } from "@electron-forge/plugin-fuses";
+import { PublisherGithub } from "@electron-forge/publisher-github";
+import type { ForgeConfig } from "@electron-forge/shared-types";
+import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
 const config: ForgeConfig = {
     packagerConfig: {
@@ -25,7 +25,7 @@ const config: ForgeConfig = {
             [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
             [FuseV1Options.EnableNodeCliInspectArguments]: false,
             [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-            [FuseV1Options.OnlyLoadAppFromAsar]: true,
+            [FuseV1Options.OnlyLoadAppFromAsar]: true
         })
     ],
     publishers: [

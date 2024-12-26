@@ -37,8 +37,7 @@ declare global {
 })
 export class AppComponent implements OnInit {
     title = "ChessStudio";
-    constructor() {
-    }
+    constructor() {}
     async ngOnInit(): Promise<void> {
         const n = await window.foobar.baz("World");
         console.log(`baz("World") => ${n}`);

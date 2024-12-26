@@ -22,22 +22,11 @@ export const REGEX = {
         pv: /\bpv (.+)/,
         string: /\bstring (.+)/,
         refutation: /\brefutation (.+)/,
-        currline: /\bcurrline (.+)/,
-    },
-}
+        currline: /\bcurrline (.+)/
+    }
+};
 
 /**
  * types in `info` commands that are numbers
  */
-export const INFO_NUMBER_TYPES = [
-    'depth',
-    'seldepth',
-    'time',
-    'nodes',
-    'currmovenumber',
-    'hashfull',
-    'nps',
-    'tbhits',
-    'cpuload',
-    'multipv',
-]
+export const INFO_NUMBER_TYPES = ["depth", "seldepth", "time", "nodes", "currmovenumber", "hashfull", "nps", "tbhits", "cpuload", "multipv"];
