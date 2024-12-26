@@ -7,7 +7,12 @@ jobs:
     build:
         strategy:
             matrix:
-                os: [{ name: "linux", image: "ubuntu-latest" }, { name: "windows", image: "windows-latest" }, { name: "macos", image: "macos-latest" }]
+                os:
+                    [
+                        { name: "linux", image: "ubuntu-latest" },
+                        { name: "windows", image: "windows-latest" },
+                        { name: "macos", image: "macos-latest" },
+                    ]
         runs-on: ${{ matrix.os.image }}
         steps:
             - name: Github checkout
@@ -17,4 +22,11 @@ jobs:
               with:
                   node-version: 20.x
             - run: npm install
-            - run: npm run publish-app
+            - name: Debug token
+              run: echo ${GITHUB_TOKEN:0:5}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.ELECTRON_FORGE_GITHUB_TOKEN }}
+            - name: Publish app
+              env:
+                  GITHUB_TOKEN: ${{ secrets.ELECTRON_FORGE_GITHUB_TOKEN }}
+              run: npm run publish-app
