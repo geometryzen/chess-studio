@@ -1,4 +1,4 @@
-name: Release app
+name: Publish ChessStudio
 
 on:
     workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
               uses: actions/setup-node@v3
               with:
                   node-version: 20.x
-            - run: npm install
+            - run: npm install --force
             - name: Debug token
               run: echo ${GITHUB_TOKEN:0:5}
               env:
