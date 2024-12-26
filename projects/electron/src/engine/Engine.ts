@@ -2,21 +2,23 @@ import { ChildProcess, spawn } from "child_process";
 import { EventEmitter } from "events";
 import { EOL } from "os";
 import path from "path";
+import { fromEvent, Observable } from "rxjs";
 
 import debug from "debug";
 
-import { REGEX } from "./const";
-import { goCommand, GoOptions } from "./goCommand";
-import { goReducer } from "./goReducer";
-import { initReducer, InitResult } from "./initReducer";
-import { BestMove, parseBestmove } from "./parseBestmove";
-import { Info, parseInfo } from "./parseInfo";
+import { REGEX } from "./const.js";
+import { goCommand, GoOptions } from "./goCommand.js";
+import { goReducer } from "./goReducer.js";
+import { initReducer, InitResult } from "./initReducer.js";
+import { BestMove, parseBestmove } from "./parseBestmove.js";
+import { Info, parseInfo } from "./parseInfo.js";
+import { UciOption } from "./parseOption.js";
 
 interface StringKeyedObject {
     [key: string]: any;
 }
 
-export interface TypeSafeEventEmitter<C extends StringKeyedObject> extends EventEmitter {
+interface TypeSafeEventEmitter<C extends StringKeyedObject> extends EventEmitter {
     // K has to be a key on C (the passed type) but it also has to be a string and then we use index
     // types to get the actual type that we expect (C[K]).
 
@@ -53,32 +55,19 @@ type Events = {
     stop: {};
 };
 
-export async function example1() {
+export async function example() {
     const engine = new Engine();
-    await engine.init("path/to/engine");
+    await engine.hydrate("path/to/engine");
     await engine.setoption("MultiPV", "4");
     await engine.isready();
-    console.log("engine ready", engine.id, engine.options);
     engine.position("startpos", ["e2e4", "e7e5"]);
-    const result = await engine.go({ depth: 4 });
-    console.log("result", result);
-    await engine.quit();
-}
-
-export async function example2() {
-    const engine = new Engine();
-    await engine.init("path/to/engine");
-    await engine.setoption("MultiPV", "4");
-    await engine.isready();
-    console.log("engine ready", engine.id, engine.options);
-    engine.position("startpos", ["e2e4", "e7e5"]);
-    const emitter = engine.goInfinite({ depth: 4 });
-    emitter.on("info", function (info: Info) { });
-    emitter.on("bestmove", function (bestmove: BestMove) { });
+    engine.info$.subscribe(function (info: Info) { });
+    engine.bestmove$.subscribe(function (bestmove: BestMove) { });
+    engine.go({ depth: 4 });
     setTimeout(async () => {
         const bestmove = await engine.stop();
-        console.log("bestmove", bestmove);
-        await engine.quit();
+        bestmove.bestmove
+        await engine.dehydrate();
     }, 5000);
 }
 
@@ -162,9 +151,11 @@ export async function example2() {
  */
 export class Engine {
     id: { name: string; author: string };
-    options: Map<string, unknown>;
+    readonly options: Map<string, UciOption> = new Map();;
     exe: ChildProcess;
-    emitter: TypeSafeEventEmitter<Events>;
+    private readonly emitter: TypeSafeEventEmitter<Events> = new EventEmitter();
+    readonly info$: Observable<Info> = fromEvent(this.emitter, 'info') as Observable<Info>;
+    readonly bestmove$: Observable<BestMove> = fromEvent(this.emitter, 'bestmove') as Observable<BestMove>;
     /**
      * Create a new Engine instance. At first the Engine is uninitialized;
      * engine id and options are empty. It must be {@link #Engine#init}'ed.
@@ -179,14 +170,13 @@ export class Engine {
             name: null,
             author: null
         };
-        this.options = new Map();
     }
 
     /**
      * Retireve the proc buffer until condition is true.
      * You shouldn't need to use this normally.
-     * @param {function(string)} condition a function that returns true at some point
-     * @return {promise<string[]>} array of strings containing buffer received from engine
+     * @param condition a function that returns true at some point
+     * @return array of strings containing buffer received from engine
      * @example
      * //async/await
      * const lines = await myEngine.getBufferUntil(line => line === 'uciok')
@@ -201,14 +191,15 @@ export class Engine {
      */
     async getBufferUntil(condition: (line: string) => boolean): Promise<string[]> {
         const lines: string[] = [];
-        let listener: (buffer: string) => void;
+        let listener: (data: string) => void;
         let reject_ref;
         const p = new Promise<void>((resolve, reject) => {
             reject_ref = reject;
             let backlog = "";
             //listener gets new lines until condition is true
-            listener = (buffer: string) => {
-                backlog += buffer;
+            listener = (data: string) => {
+                console.log(`data => ${data}`);
+                backlog += data;
 
                 let n = backlog.indexOf("\n");
                 while (n > -1) {
@@ -239,67 +230,34 @@ export class Engine {
         return lines;
     }
 
-    /**
-     * Writes command to engine process. Normally you shouldn't need to use this.
-     * Does not validate string, use with caution or engine may have undefined behavior.
-     * @param command command to write to engine process' stdin
-     */
     write(command: string): void {
         this.exe.stdin.write(`${command}${EOL}`);
-        engineLog("<-", command, EOL);
+        // console.lg("<-", command, EOL);
     }
 
-    /**
-     * Initializes the engine process and handshakes with the UCI protocol.
-     * When this is done, {@link #Engine#id} and {@link #Engine#options} are populated.
-     * @return Promise of this itself (the Engine instance)
-     * @throws {Error} if init() has already been called (i.e Engine.proc is defined)
-     * @example
-     * //async/await
-     * const engine = new Engine(somePath)
-     * await engine.init()
-     * //engine is initialized, do stuff...
-     *
-     * //promise
-     * var myEngine = new Engine(somePath)
-     * myEngine.init()
-     * .then(function (engine) {
-     *   //myEngine === engine
-     *   //do stuff
-     * })
-     */
-    async init(filePath: string): Promise<this> {
+    async hydrate(filePath: string): Promise<this> {
         if (this.exe) throw new Error('cannot call "init()": already initialized');
-        //set up spawn
         this.exe = spawn(path.normalize(filePath));
         this.exe.stdout.setEncoding("utf8");
-        //log buffer from engine
         this.exe.stdout.on("data", fromEngineLog);
-        //send command to engine
         this.write("uci");
-        //parse lines
         const lines = await this.getBufferUntil((line) => line === "uciok");
         const { id, options } = lines.reduce(initReducer, {
             id: {},
             options: {}
         } as InitResult);
-        //set id and options
         if (id) this.id = id;
         if (options) {
-            //put options to Map
-            Object.keys(options).forEach((key) => {
-                this.options.set(key, options[key]);
+            const keys = Object.keys(options);
+            keys.forEach((key) => {
+                const value = options[key];
+                this.options.set(key, value);
             });
         }
         return this;
     }
 
-    /**
-     * Sends a quit message to the engine process, and cleans up.
-     * @return {promise<Engine>} itself (the Engine instance)
-     * @throws {Error} if engine process is not running (i.e. Engine.proc is undefined)
-     */
-    async quit(): Promise<this> {
+    async dehydrate(): Promise<this> {
         if (!this.exe) throw new Error('cannot call "quit()": engine process not running');
         //send quit cmd and resolve when closed
         await new Promise((resolve) => {
@@ -344,37 +302,13 @@ export class Engine {
         return this.isready();
     }
 
-    /**
-     * Sends the `setoption` command for given option name and its value.
-     * Does not validate parameters. `value`, if given, is coerced into a string.
-     * @param {string} name - name of the option property
-     * @param {string} [value] - value of the option
-     * @return {promise<Engine>} itself (the Engine instance)
-     * @throws {Error} if engine process is not running
-     * @example
-     * //async/await
-     * await myEngine.setoption('MultiPV', '3')
-     * await myEngine.setoption('Slow Mover', '400')
-     * console.log(myEngine.options)
-     * // -> output includes newly set options
-     *
-     * //promise
-     * myEngine.setoption('MultiPV', '3')
-     * .then(function (engine) {
-     *   return engine.setoption('Slow Mover', '400');
-     * })
-     * .then(function (engine) {
-     *   console.log(myEngine.options)
-     *   // -> output includes newly set options
-     * })
-     */
     async setoption(name: string, value?: string): Promise<this> {
         //construct command
         let cmd = `name ${name}`;
         if (typeof value !== "undefined") cmd += ` value ${value.toString()}`;
         //send and wait for response
         await this.sendCmd(`setoption ${cmd}`);
-        this.options.set(name, value);
+        // this.options.set(name, value);
         return this;
     }
 
@@ -423,62 +357,6 @@ export class Engine {
     }
 
     /**
-     * Sends the `go` command to the engine process. Returns after engine finds the best move.
-     * Does not validate options. Does not work for infinite search. For intinite search, see {@link #Engine#goInfinite}.
-     * Options have identical names as the UCI `go` options. See UCI protocol for information.
-     * On completion, it returns an object containing the `bestmove` and an array of `info` objects,
-     * these `info` objects have properties that correspond to the UCI protocol.
-     * @param {object} options - options
-     * @param {string[]} options.searchmoves - moves (in engine notation) to search for
-     * @param {boolean} options.ponder - ponder mode
-     * @param {number} options.wtime - wtime (integer > 0)
-     * @param {number} options.btime - btime (integer > 0)
-     * @param {number} options.winc - winc (integer > 0)
-     * @param {number} options.binc - binc (integer > 0)
-     * @param {number} options.movestogo - movestogo (integer > 0)
-     * @param {number} options.depth - depth (integer > 0)
-     * @param {number} options.nodes - nodes (integer > 0)
-     * @param {number} options.mate - mate (integer > 0)
-     * @param {number} options.movetime - movetime (integer > 0)
-     * @return {promise<{bestmove: string, info: string[]}>} result - `bestmove` string
-     * and array of chronologically-ordered `info` objects
-     * @throws {Error} if engine process is not running
-     * @throws {Error} if `infinite` is supplied in the options param
-     * @example
-     * //async/await
-     * const engine = new Engine(somePath)
-     * await engine.init()
-     * const result = await engine.go({depth: 3})
-     * console.log(result)
-     * // -> {bestmove: 'e2e4', info: [{depth: 1, seldepth: 1, nodes: 21,...}, ...]}
-     *
-     * //promise
-     * var myEngine = new Engine(somePath)
-     * myEngine.init()
-     * .then(function (engine) {
-     *   return engine.go({depth: 3})
-     * })
-     * .then(function (result) {
-     *   console.log(result)
-     *   // -> {bestmove: 'e2e4', info: [{depth: 1, seldepth: 1, nodes: 21,...}, ...]}
-     * })
-     */
-    async go(options: GoOptions): Promise<BestMove> {
-        if (!this.exe) throw new Error('cannot call "go()": engine process not running');
-        if (options.infinite) throw new Error("go() does not support infinite search, use goInfinite()");
-        //construct command and send
-        const command = goCommand(options);
-        this.write(command);
-        //parse lines
-        const lines = await this.getBufferUntil((line) => REGEX.bestmove.test(line));
-        const result = lines.reduce(goReducer, {
-            bestmove: null,
-            info: []
-        });
-        return result;
-    }
-
-    /**
      * Special case of {@link #Engine#go} with `infinite` search enabled.
      * @param {object} options - options for search. see {@link #Engine#go} for details
      * @return {EventEmitter} an EventEmitter that will emit `data` events with either
@@ -501,11 +379,10 @@ export class Engine {
      *   await engine.quit()
      * }, 5000)
      */
-    goInfinite(options: GoOptions = {}): TypeSafeEventEmitter<Events> {
+    go(options: GoOptions = {}): void {
         if (!this.exe) throw new Error('cannot call "goInfinite()": engine process not running');
-        //set up emitter
-        this.emitter = new EventEmitter();
-        const listener = (buffer: string) => {
+
+        const stdoutListener = (buffer: string) => {
             buffer
                 .split(/\r?\n/g)
                 .filter((line) => !!line.length)
@@ -516,14 +393,14 @@ export class Engine {
                     if (bestmove) return this.emitter.emit("bestmove", bestmove);
                 });
         };
-        options.infinite = true;
+        // options.infinite = true;
         const command = goCommand(options);
-        this.exe.stdout.on("data", listener);
+        this.exe.stdout.on("data", stdoutListener);
+        // TODO: I don't like reusing the emitter for this.
         this.emitter.on("stop", () => {
-            this.exe.stdout.removeListener("data", listener);
+            this.exe.stdout.removeListener("data", stdoutListener);
         });
         this.write(command);
-        return this.emitter;
     }
 
     /**

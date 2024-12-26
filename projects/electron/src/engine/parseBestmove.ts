@@ -1,5 +1,5 @@
-import { REGEX } from "./const";
-import { Info } from "./parseInfo";
+import { REGEX } from "./const.js";
+import { Info } from "./parseInfo.js";
 
 export interface BestMove {
     bestmove: string;

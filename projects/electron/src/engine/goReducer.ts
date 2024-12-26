@@ -1,6 +1,6 @@
-import get from "lodash/get";
+import get from "lodash/get.js";
 
-import { REGEX } from "./const";
+import { REGEX } from "./const.js";
 import { BestMove, parseBestmove } from "./parseBestmove.js";
 import { Info, parseInfo } from "./parseInfo.js";
 

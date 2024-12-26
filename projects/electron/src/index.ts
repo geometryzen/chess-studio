@@ -1,16 +1,17 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, screen, shell } from "electron";
-import installExtension from "electron-devtools-installer";
+import { app, BrowserWindow, ipcMain } from "electron";
+import started from 'electron-squirrel-startup';
 import path from "path";
+// import url, { fileURLToPath } from "url";
 import url from "url";
-import { alert } from "./modules/alert_main.js";
-import { Config, filename as configFilename, filepath as configFilepath, load } from "./modules/config_io.js";
-import { load as loadCustomUCI, script_dir_path } from "./modules/custom_uci.js";
-import { filename as engineFilename, filepath as engineFilepath } from "./modules/engineconfig_io.js";
-import { about_custom_pieces, about_hashes, about_sizes, about_versus_mode, adding_scripts, save_not_enabled, thread_warning, wrong_engine_exe } from "./modules/messages.js";
-import { running_as_electron } from "./modules/running_as_electron.js";
-import { stringify } from "./modules/stringify.js";
+import { Engine } from "./engine/Engine.js";
+import { Config, load } from "./modules/config_io.js";
+
+// const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+// const __dirname = path.dirname(__filename); // get the name of the directory
 
 let config: Config = load()[1];
+
+const engine = new Engine();
 
 // The docs are a bit vague but it seems there's a limited timeframe
 // in which command line flags can be passed, so do this ASAP...
@@ -28,59 +29,36 @@ if (config.disable_hw_accel) {
         console.log("Failed to disable hardware acceleration.");
     }
 }
-// We want sync save and open dialogs. In Electron 5 we could get these by calling
-// showSaveDialog or showOpenDialog without a callback, but in Electron 6 this no
-// longer works and we must call new functions. So find out if they exist...
-
-const save_dialog = dialog.showSaveDialogSync || dialog.showSaveDialog;
-const open_dialog = dialog.showOpenDialogSync || dialog.showOpenDialog;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require("electron-squirrel-startup")) {
+if (started) {
     app.quit();
 }
-
-let menu: Menu;
-let menu_is_set = false;
-
-let have_sent_quit = false;
-let have_received_terminate = false;
-
-let loaded_engine = "";
-let loaded_weights = "";
-let loaded_evalfile = "";
 
 let have_warned_hw_accel_setting = false;
 
 const createWindow = (): void => {
-    let desired_zoomfactor = 1 / screen.getPrimaryDisplay().scaleFactor;
 
-    let win = new BrowserWindow({
-        height: 600,
-        width: 800,
-        // backgroundColor: "#000000",
-        resizable: true,
-        show: false,
-        useContentSize: true,
-        webPreferences: {
-            backgroundThrottling: false,
-            // contextBridge API in preload.ts can only be used when contextIsolation is enabled.
-            // contextIsolation: false,
-            nodeIntegration: true,
-            spellcheck: false,
-            preload: path.join(__dirname, "preload.js"),
-            zoomFactor: desired_zoomfactor // Unreliable, see https://github.com/electron/electron/issues/10572
-        }
+    ipcMain.handle("bazzo", (event, arg0, arg1) => {
+        console.log(`bazzo! ${arg0} ${arg1}`);
+        return 42;
     });
 
-    win.once("ready-to-show", () => {
-        try {
-            win.webContents.setZoomFactor(desired_zoomfactor); // This seems to work, note issue 10572 above.
-        } catch (err) {
-            win.webContents.zoomFactor = desired_zoomfactor; // The method above "will be removed" in future.
+    const win = new BrowserWindow({
+        width: 800,
+        height: 600,
+        // backgroundColor: "#000000",
+        // resizable: true,
+        // show: false,
+        // useContentSize: true,
+        webPreferences: {
+            // backgroundThrottling: false,
+            // contextBridge API in preload.ts can only be used when contextIsolation is enabled.
+            // contextIsolation: false,
+            // nodeIntegration: true,
+            // spellcheck: false,
+            preload: path.join(__dirname, "preload.js"),
         }
-        win.show();
-        win.focus();
     });
 
     const packagedStartURL = url.format({
@@ -89,218 +67,27 @@ const createWindow = (): void => {
         slashes: true
     });
 
-    const startURL = app.isPackaged ? packagedStartURL : `http://localhost:4200`;
+    const startURL = /*app.isPackaged ? packagedStartURL :*/ `http://localhost:4200`;
 
     win.loadURL(startURL);
 
-    win.webContents.openDevTools();
-
-    win.on("closed", function () {
-        win = null;
-    });
-
-    app.on("activate", () => {
-        // On OS X it's common to re-create a window in the app when the
-        // dock icon is clicked and there are no other windows open.
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
-            return;
-        }
-        if (win === null) {
-            createWindow();
-            return;
-        }
-    });
-
-    ipcMain.once("renderer_ready", () => {
-        if (actually_disabled_hw_accel) {
-            win.webContents.send("call", {
-                fn: "console",
-                args: ["Hardware acceleration is disabled."]
-            });
-        }
-
-        // Open a file via command line. We must wait until the renderer has properly loaded before we do this.
-        // While it might seem like we could do this after "ready-to-show" I'm not 100% sure that the renderer
-        // will have fully loaded when that fires.
-
-        let filename = "";
-
-        if (running_as_electron()) {
-            if (process.argv.length > 2) {
-                filename = process.argv[process.argv.length - 1];
-            }
-        } else {
-            if (process.argv.length > 1) {
-                filename = process.argv[process.argv.length - 1];
-            }
-        }
-
-        if (filename !== "") {
-            win.webContents.send("call", {
-                fn: "open",
-                args: [filename]
-            });
-        }
-    });
-
-    // TODO: Does the handler need to be async?
-    ipcMain.handle("bazzo", (event, arg0, arg1) => {
-        console.log(`bazzo! ${arg0} ${arg1}`);
-        return 42;
-    });
-
-    ipcMain.on("alert", (event, msg) => {
-        alert(win, msg);
-    });
-
-    ipcMain.on("set_title", (event, msg) => {
-        win.setTitle(msg);
-    });
-
-    ipcMain.on("ack_engine", (event, msg) => {
-        loaded_engine = msg;
-        set_one_check(msg ? true : false, menu, "Engine", "Choose engine...");
-    });
-
-    ipcMain.on("ack_logfile", (event, msg) => {
-        set_one_check(msg ? true : false, menu, "Dev", "Logging", "Use logfile...");
-    });
-
-    ipcMain.on("ack_book", (event, msg) => {
-        set_one_check(msg === "polyglot", menu, "Play", "Use Polyglot book...");
-        set_one_check(msg === "pgn", menu, "Play", "Use PGN book...");
-    });
-
-    ipcMain.on("ack_node_limit", (event, msg) => {
-        set_checks(menu, "Engine", "Limit - normal", msg);
-    });
-
-    ipcMain.on("ack_special_node_limit", (event, msg) => {
-        set_checks(menu, "Engine", "Limit - auto-eval / play", msg);
-    });
-
-    ipcMain.on("ack_limit_by_time", (event, msg) => {
-        set_one_check(msg ? true : false, menu, "Engine", "Limit by time instead of nodes");
-    });
-
-    ipcMain.on("ack_setoption", (event, msg) => {
-        // These are received whenever the renderer actually sends a setoption UCI command.
-        // But we also sometimes query some option and get a response indicating what the
-        // last value we sent was, or "" if not applicable.
-
-        // Expect msg.key to be a lowercase string
-        // Expect msg.val to be a string, possibly "" (can use the fact that "" is false-ish)
-
-        // REMEMBER TO UPDATE engine.js GUI_WANTS_TO_KNOW const WHEN THINGS ARE ADDED...
-
-        switch (msg.key) {
-            case "weightsfile":
-                loaded_weights = msg.val;
-                set_one_check(msg.val ? true : false, menu, "Engine", "Weights", "Lc0 WeightsFile...");
-                break;
-
-            case "evalfile":
-                loaded_evalfile = msg.val;
-                set_one_check(msg.val ? true : false, menu, "Engine", "Weights", "Stockfish EvalFile...");
-                break;
-
-            case "syzygypath":
-                set_one_check(msg.val ? true : false, menu, "Engine", "Choose Syzygy path...");
-                break;
-
-            case "backend":
-                set_checks(menu, "Engine", "Backend", msg.val);
-                break;
-
-            case "threads":
-                set_checks(menu, "Engine", "Threads", msg.val);
-                break;
-
-            case "hash": {
-                let mb = parseInt(msg.val, 10);
-                if (Number.isNaN(mb) === false) {
-                    let gb = Math.floor(mb / 1024);
-                    set_checks(menu, "Engine", "Hash", `${gb} GB`);
-                } else {
-                    set_checks(menu, "Engine", "Hash", ""); // i.e. clear all
-                }
-                break;
-            }
-            case "multipv":
-                set_checks(menu, "Engine", "MultiPV", msg.val); // If it's "500" it will clear all.
-                break;
-
-            case "temperature": // Sketchy because there are equivalent representations.
-                if (msg.val === "0" || msg.val === "0.0") {
-                    set_checks(menu, "Play", "Temperature", "0");
-                } else if (msg.val === "1" || msg.val === "1.0") {
-                    set_checks(menu, "Play", "Temperature", "1.0");
-                } else {
-                    set_checks(menu, "Play", "Temperature", msg.val);
-                }
-                break;
-
-            case "tempdecaymoves": // Not so sketchy because it should be a string of an integer.
-                set_checks(menu, "Play", "Temp Decay Moves", msg.val === "0" ? "Infinite" : msg.val);
-                break;
-
-            case "contemptmode": // All the menu items are different from the UCI values...
-                if (msg.val === "white_side_analysis") {
-                    set_checks(menu, "Engine", "Contempt Mode", "White analysis");
-                } else if (msg.val === "black_side_analysis") {
-                    set_checks(menu, "Engine", "Contempt Mode", "Black analysis");
-                } else {
-                    set_checks(menu, "Engine", "Contempt Mode", msg.val);
-                }
-                break;
-
-            case "contempt":
-                set_checks(menu, "Engine", "Contempt", msg.val);
-                break;
-
-            case "wdlcalibrationelo":
-                set_checks(menu, "Engine", "WDL Calibration Elo", msg.val === "0" ? "Use default WDL" : msg.val);
-                break;
-
-            case "wdlevalobjectivity":
-                if (msg.val === "1") {
-                    set_checks(menu, "Engine", "WDL Eval Objectivity", "Yes");
-                } else if (msg.val === "0") {
-                    set_checks(menu, "Engine", "WDL Eval Objectivity", "No");
-                } else {
-                    set_checks(menu, "Engine", "WDL Eval Objectivity", msg.val);
-                }
-                break;
-
-            case "scoretype":
-                set_checks(menu, "Engine", "Score Type", msg.val);
-                break;
-
-            // REMEMBER TO UPDATE engine.js GUI_WANTS_TO_KNOW const WHEN THINGS ARE ADDED...
-        }
-    });
-
-    menu = menu_build(win);
-
-    Menu.setApplicationMenu(menu);
-
-    menu_is_set = true;
+    // Open the DevTools.
+    // win.webContents.openDevTools();
 };
-
-app.whenReady().then(() => {
-    // Install Angular DevTools
-    // https://angular.io/guide/devtools
-    installExtension("ienfalfjdbdpebioblfackkekamfmbnh")
-        .then((name) => console.log(`Added Extension:  ${name}`))
-        .catch((err) => console.log("An error occurred: ", err));
-});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on("ready", () => {
+app.whenReady().then(() => {
     createWindow();
+
+    // On OS X it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
+        }
+    });
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -315,6 +102,7 @@ app.on("window-all-closed", () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
+/*
 function menu_build(win: BrowserWindow): Menu {
     const million = 1000 * 1000;
     const billion = 1000 * million;
@@ -2213,27 +2001,57 @@ function menu_build(win: BrowserWindow): Menu {
                     label: "Choose engine...",
                     type: "checkbox",
                     checked: false,
-                    click: () => {
-                        let files = open_dialog(win, {
-                            defaultPath: config.engine_dialog_folder,
-                            properties: ["openFile"]
-                        });
-                        if (Array.isArray(files) && files.length > 0) {
-                            let file = files[0];
-                            if (file === process.argv[0] || path.basename(file).includes("client")) {
-                                alert(win, wrong_engine_exe);
-                                win.webContents.send("call", "send_ack_engine"); // Force an ack IPC to fix our menu check state.
-                                return;
-                            }
-                            win.webContents.send("call", {
-                                fn: "switch_engine",
-                                args: [file]
+                    click: async () => {
+                        try {
+                            let files = open_dialog(win, {
+                                defaultPath: config.engine_dialog_folder,
+                                properties: ["openFile"]
                             });
-                            // Save the dir as the new default dir, in both processes.
-                            config.engine_dialog_folder = path.dirname(file);
-                            win.webContents.send("set", { engine_dialog_folder: path.dirname(file) });
-                        } else {
-                            win.webContents.send("call", "send_ack_engine"); // Force an ack IPC to fix our menu check state.
+                            if (Array.isArray(files) && files.length > 0) {
+                                let file = files[0];
+                                if (file === process.argv[0] || path.basename(file).includes("client")) {
+                                    alert(win, wrong_engine_exe);
+                                    win.webContents.send("call", "send_ack_engine"); // Force an ack IPC to fix our menu check state.
+                                    return;
+                                }
+                                win.webContents.send("call", {
+                                    fn: "switch_engine",
+                                    args: [file]
+                                });
+                                console.log(`file: ${file}`);
+                                await engine.hydrate(file);
+                                console.log(`engine.id => ${JSON.stringify(engine.id)}`);
+                                console.log(`engine.options.size => ${JSON.stringify(engine.options.size)}`);
+                                for (const key of engine.options.keys()) {
+                                    const value = engine.options.get(key);
+                                    console.log(key, JSON.stringify(value));
+                                }
+                                await engine.isready();
+                                await engine.position("startpos", ["e2e4", "e7d6"]);
+                                const infoSub = engine.info$.subscribe((info) => {
+                                    // console.log(`info => ${JSON.stringify(info)}`);
+                                })
+                                const bestSub = engine.bestmove$.subscribe((bestmove) => {
+                                    console.log(`bestmove => ${JSON.stringify(bestmove)}`);
+                                })
+                                engine.go();
+                                setTimeout(async () => {
+                                    const bestie = await engine.stop();
+                                    infoSub.unsubscribe();
+                                    bestSub.unsubscribe();
+                                    console.log(`bestie => ${JSON.stringify(bestie, null, 2)}`);
+                                    await engine.dehydrate()
+                                }, 5000)
+
+                                // Save the dir as the new default dir, in both processes.
+                                config.engine_dialog_folder = path.dirname(file);
+                                win.webContents.send("set", { engine_dialog_folder: path.dirname(file) });
+                            } else {
+                                win.webContents.send("call", "send_ack_engine"); // Force an ack IPC to fix our menu check state.
+                            }
+                        }
+                        catch (e) {
+                            console.log(`e => ${e}`);
                         }
                     }
                 },
@@ -4761,3 +4579,4 @@ function set_one_check(state: boolean, menu: Menu, ...menupath: string[]) {
         }
     }
 }
+*/

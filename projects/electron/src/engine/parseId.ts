@@ -1,4 +1,4 @@
-import { REGEX } from "./const";
+import { REGEX } from "./const.js";
 
 export function parseId(line: string) {
     const parsed = REGEX.id.exec(line);

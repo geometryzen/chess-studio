@@ -1,7 +1,7 @@
-import forEach from "lodash/forEach";
-import isEmpty from "lodash/isEmpty";
+import forEach from "lodash/forEach.js";
+import isEmpty from "lodash/isEmpty.js";
 
-import { INFO_NUMBER_TYPES, REGEX } from "./const";
+import { INFO_NUMBER_TYPES, REGEX } from "./const.js";
 
 export type Info = Record<string, { unit: string; value: number } | number | string>;
 
