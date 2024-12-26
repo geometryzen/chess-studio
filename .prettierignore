@@ -1,4 +1,17 @@
 /dist
+/coverage
 /node_modules
+/.nx/cache
+/.nx/workspace-data
 
 .angular
+
+/apps/**/*.js
+/apps/**/*.d.ts
+/libs/**/*.js
+/libs/**/*.d.ts
+/apps/stemclegacy/museum/**/*.*
+/apps/stemclegacy/manual/**/*.*
+/apps/stemcstudio/museum/**/*.*
+/apps/stemcstudio/manual/**/*.*
+

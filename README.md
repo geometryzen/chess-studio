@@ -1,28 +1,17 @@
-# ChessStudio
+# chess-studio
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.0.6.
+## Continuous Integration
+![CI](https://github.com/geometryzen/chess-studio/workflows/CI/badge.svg)
 
-## Development server
+[Builds](https://github.com/geometryzen/chess-studio/actions)
 
-To start a local development server, run:
-
-```bash
-npm run start
-```
-
-Allow time for the Electron application to load. The application will automatically reload whenever you modify any of the source files.
-
-## Building
-
-To build the project run:
+## Getting started
 
 ```bash
+$ git clone https://github.com/geometryzen/chess-studio
+$ cd chess-studio
+$ npm install --force
+$ npm run build:dev:all
+$ npm start
 ```
 
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-npm run test
-```

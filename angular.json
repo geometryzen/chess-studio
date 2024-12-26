@@ -1,53 +1,60 @@
 {
     "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
     "version": 1,
-    "newProjectRoot": "projects",
+    "newProjectRoot": "src",
     "projects": {
-        "chessstudio": {
+        "renderer": {
             "projectType": "application",
             "schematics": {
                 "@schematics/angular:component": {
+                    "inlineTemplate": true,
+                    "inlineStyle": true,
                     "style": "scss"
                 }
             },
-            "root": "projects/chessstudio",
-            "sourceRoot": "projects/chessstudio/src",
+            "root": "src/renderer",
+            "sourceRoot": "src/renderer/src",
             "prefix": "app",
             "architect": {
                 "build": {
                     "builder": "@angular-devkit/build-angular:application",
                     "options": {
-                        "outputPath": "dist/chessstudio",
-                        "index": "projects/chessstudio/src/index.html",
-                        "browser": "projects/chessstudio/src/main.ts",
+                        "outputPath": "dist/renderer",
+                        "index": "src/renderer/src/index.html",
+                        "browser": "src/renderer/src/main.ts",
                         "polyfills": ["zone.js"],
-                        "tsConfig": "projects/chessstudio/tsconfig.app.json",
+                        "tsConfig": "src/renderer/tsconfig.app.json",
                         "inlineStyleLanguage": "scss",
-                        "assets": [
-                            {
-                                "glob": "**/*",
-                                "input": "projects/chessstudio/public"
-                            }
-                        ],
-                        "styles": ["projects/chessstudio/src/styles.scss"],
+                        "aot": true,
+                        "assets": ["src/renderer/src/assets"],
+                        "styles": ["src/renderer/src/styles.scss", "./node_modules/@angular/material/prebuilt-themes/indigo-pink.css"],
                         "scripts": []
                     },
                     "configurations": {
                         "production": {
                             "baseHref": "./",
+                            "fileReplacements": [
+                                {
+                                    "replace": "src/renderer/src/environments/environment.ts",
+                                    "with": "src/renderer/src/environments/environment.prod.ts"
+                                }
+                            ],
+                            "optimization": true,
+                            "outputHashing": "all",
+                            "sourceMap": false,
+                            "namedChunks": false,
+                            "extractLicenses": false,
                             "budgets": [
                                 {
                                     "type": "initial",
-                                    "maximumWarning": "500kB",
-                                    "maximumError": "1MB"
+                                    "maximumWarning": "2mb",
+                                    "maximumError": "5mb"
                                 },
                                 {
                                     "type": "anyComponentStyle",
-                                    "maximumWarning": "4kB",
-                                    "maximumError": "8kB"
+                                    "maximumWarning": "6kb"
                                 }
-                            ],
-                            "outputHashing": "all"
+                            ]
                         },
                         "development": {
                             "optimization": false,
@@ -59,39 +66,60 @@
                 },
                 "serve": {
                     "builder": "@angular-devkit/build-angular:dev-server",
+                    "options": {
+                        "buildTarget": "renderer:build"
+                    },
                     "configurations": {
                         "production": {
-                            "buildTarget": "chessstudio:build:production"
+                            "buildTarget": "renderer:build:production"
                         },
                         "development": {
-                            "buildTarget": "chessstudio:build:development"
+                            "buildTarget": "renderer:build:development"
                         }
-                    },
-                    "defaultConfiguration": "development"
+                    }
                 },
                 "extract-i18n": {
-                    "builder": "@angular-devkit/build-angular:extract-i18n"
+                    "builder": "@angular-devkit/build-angular:extract-i18n",
+                    "options": {
+                        "buildTarget": "renderer:build"
+                    }
                 },
                 "test": {
                     "builder": "@angular-devkit/build-angular:karma",
                     "options": {
+                        "main": "src/renderer/src/test.ts",
                         "polyfills": ["zone.js", "zone.js/testing"],
-                        "tsConfig": "projects/chessstudio/tsconfig.spec.json",
+                        "tsConfig": "src/renderer/tsconfig.spec.json",
                         "inlineStyleLanguage": "scss",
-                        "assets": [
-                            {
-                                "glob": "**/*",
-                                "input": "projects/chessstudio/public"
-                            }
-                        ],
-                        "styles": ["projects/chessstudio/src/styles.scss"],
+                        "karmaConfig": "src/renderer/karma.conf.js",
+                        "assets": ["src/renderer/src/assets"],
+                        "styles": ["src/renderer/src/styles.scss", "./node_modules/@angular/material/prebuilt-themes/indigo-pink.css"],
                         "scripts": []
+                    }
+                },
+                "lint": {
+                    "builder": "@angular-devkit/build-angular:tslint",
+                    "options": {
+                        "tsConfig": ["src/renderer/tsconfig.app.json", "src/renderer/tsconfig.spec.json", "src/renderer/e2e/tsconfig.json"],
+                        "exclude": ["**/node_modules/**"]
+                    }
+                },
+                "e2e": {
+                    "builder": "@angular-devkit/build-angular:protractor",
+                    "options": {
+                        "protractorConfig": "src/renderer/e2e/protractor.conf.js",
+                        "devServerTarget": "renderer:serve"
+                    },
+                    "configurations": {
+                        "production": {
+                            "devServerTarget": "renderer:serve:production"
+                        }
                     }
                 }
             }
         }
     },
     "cli": {
-        "analytics": "213d7d93-8f6f-43c5-a516-88a049fa8ee3"
+        "analytics": "c5c3786e-9618-4bfc-992c-2b58a5a960c6"
     }
 }

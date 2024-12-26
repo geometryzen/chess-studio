@@ -1,0 +1,24 @@
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "baseUrl": "./",
+        "outDir": "./dist/out-tsc",
+        "sourceMap": true,
+        "declaration": false,
+        "module": "esnext",
+        "moduleResolution": "node",
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "importHelpers": true,
+        "target": "ESNext",
+        "typeRoots": ["node_modules/@types"],
+        "lib": ["ESNext", "dom"]
+    },
+    "include": ["src/window-interface/index.d.ts"],
+    "angularCompilerOptions": {
+        "disableTypeScriptVersionCheck": true,
+        "enableI18nLegacyMessageIdFormat": false,
+        "strictInjectionParameters": true,
+        "strictTemplates": true
+    }
+}
