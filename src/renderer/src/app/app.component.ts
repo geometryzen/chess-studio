@@ -1,4 +1,10 @@
 import { Component, OnInit } from "@angular/core";
+import { MatButtonModule } from "@angular/material/button";
+import { MatIconModule } from "@angular/material/icon";
+import { MatSidenavModule } from "@angular/material/sidenav";
+import { MatToolbarModule } from "@angular/material/toolbar";
+import { RouterModule } from "@angular/router";
+import { NavlistComponent } from "./components/navlist/navlist.component";
 import { FoobarService } from "./foobar.service";
 import { IpcService } from "./ipc.service";
 
@@ -34,7 +40,8 @@ declare global {
     selector: "app-root",
     templateUrl: "./app.component.html",
     styleUrls: ["./app.component.scss"],
-    standalone: false
+    imports: [MatButtonModule, MatIconModule, MatSidenavModule, MatToolbarModule, NavlistComponent, RouterModule],
+    standalone: true
 })
 export class AppComponent implements OnInit {
     title = "Chess Studio";
@@ -42,7 +49,7 @@ export class AppComponent implements OnInit {
     constructor(
         private ipcService: IpcService,
         private foobarService: FoobarService
-    ) {}
+    ) { }
 
     async ngOnInit(): Promise<void> {
         const n = await window.foobar.baz("World");

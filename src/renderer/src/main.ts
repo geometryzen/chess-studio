@@ -8,6 +8,8 @@ if (environment.production) {
     enableProdMode();
 }
 
+// TODO: This is what you normally do for modules.
+// We can change this for standalone components.
 platformBrowserDynamic()
     .bootstrapModule(AppModule)
     .catch((err) => console.error(err));

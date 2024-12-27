@@ -10,8 +10,8 @@ import { Component2Component } from "./components/component2/component2.componen
 import { NavlistComponent } from "./components/navlist/navlist.component";
 
 @NgModule({
-    declarations: [AppComponent, Component1Component],
-    imports: [BrowserModule, AppRoutingModule, BrowserAnimationsModule, Component2Component, MaterialModule, NavlistComponent],
+    declarations: [],
+    imports: [AppComponent, BrowserModule, AppRoutingModule, BrowserAnimationsModule, Component1Component, Component2Component, MaterialModule, NavlistComponent],
     providers: [],
     bootstrap: [AppComponent]
 })

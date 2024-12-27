@@ -5,7 +5,7 @@ import { IpcService } from "src/app/ipc.service";
     selector: "app-component1",
     templateUrl: "./component1.component.html",
     styleUrls: ["./component1.component.scss"],
-    standalone: false
+    standalone: true
 })
 export class Component1Component implements OnInit {
     arch = "-";
