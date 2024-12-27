@@ -11,13 +11,8 @@
         "experimentalDecorators": true,
         "importHelpers": true,
         "target": "ESNext",
-        "typeRoots": [
-            "node_modules/@types"
-        ],
-        "lib": [
-            "ESNext",
-            "dom"
-        ]
+        "typeRoots": ["node_modules/@types"],
+        "lib": ["ESNext", "dom"]
     },
     "angularCompilerOptions": {
         "disableTypeScriptVersionCheck": true,

@@ -1,9 +1,11 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, Menu } from "electron";
 import log from "electron-log/main";
 import * as os from "os";
 import * as path from "path";
+import { Controller } from "./controller";
 import { DtoSystemInfo } from "./dtosysteminfo";
 import { Engine } from "./engine/Engine";
+import { menu_build } from "./menu/index";
 
 // Optional, initialize the logger for any renderer process
 log.initialize();
@@ -37,13 +39,16 @@ function createWindow() {
         }
     });
 
+    const controller = new Controller();
+
+    const menu = menu_build(win, controller);
+
     // https://stackoverflow.com/a/58548866/600559
-    // Menu.setApplicationMenu(null);
+    Menu.setApplicationMenu(menu);
 
     if (app.isPackaged) {
         win.loadFile(path.join(app.getAppPath(), "dist/renderer/browser", "index.html"));
-    }
-    else {
+    } else {
         win.loadFile(path.join(app.getAppPath(), "dist/renderer/browser", "index.html"));
         // win.loadURL(`http://localhost:4200`);
     }
@@ -75,4 +80,3 @@ ipcMain.handle("bazzo", (event, arg0, arg1, arg2) => {
     console.log(`bazzo! ${arg0}`);
     return 43;
 });
-

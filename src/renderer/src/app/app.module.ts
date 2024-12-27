@@ -1,7 +1,7 @@
-import { BrowserModule } from "@angular/platform-browser";
 import { NgModule } from "@angular/core";
-import { MaterialModule } from "./material.module";
+import { BrowserModule } from "@angular/platform-browser";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
+import { MaterialModule } from "./material.module";
 
 import { AppRoutingModule } from "./app-routing.module";
 import { AppComponent } from "./app.component";
@@ -10,9 +10,9 @@ import { Component2Component } from "./components/component2/component2.componen
 import { NavlistComponent } from "./components/navlist/navlist.component";
 
 @NgModule({
-    declarations: [AppComponent, Component1Component, Component2Component, NavlistComponent],
-    imports: [BrowserModule, AppRoutingModule, BrowserAnimationsModule, MaterialModule],
+    declarations: [AppComponent, Component1Component],
+    imports: [BrowserModule, AppRoutingModule, BrowserAnimationsModule, Component2Component, MaterialModule, NavlistComponent],
     providers: [],
     bootstrap: [AppComponent]
 })
-export class AppModule {}
+export class AppModule { }

@@ -12,8 +12,6 @@ export function parseOption(line: string): { [name: string]: UciOption } | null 
     const parsed = REGEX.option.exec(line);
     if (!parsed) return null;
 
-    console.log(`parsed[2] => ${parsed[2]}`);
-
     const option: UciOption = {
         type: parsed[2] as "check" | "spin" | "combo" | "button" | "string"
     };

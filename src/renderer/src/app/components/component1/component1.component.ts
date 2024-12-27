@@ -4,7 +4,7 @@ import { IpcService } from "src/app/ipc.service";
 @Component({
     selector: "app-component1",
     templateUrl: "./component1.component.html",
-    styleUrls: ["./component1.component.css"],
+    styleUrls: ["./component1.component.scss"],
     standalone: false
 })
 export class Component1Component implements OnInit {
@@ -16,7 +16,7 @@ export class Component1Component implements OnInit {
     constructor(
         private ipcService: IpcService,
         private ngZone: NgZone
-    ) {}
+    ) { }
 
     ngOnInit() {
         this.ipcService.getSystemInfoAsync().subscribe((systemInfo) => {

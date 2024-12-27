@@ -144,9 +144,9 @@ export async function example() {
  * await engine.init()
  * await engine.setoption('MultiPV', '4')
  * await engine.isready()
- * console.log('engine ready', engine.id, engine.options)
+ * console.lg('engine ready', engine.id, engine.options)
  * const result = await engine.go({depth: 4})
- * console.log('result', result)
+ * console.lg('result', result)
  * await engine.quit()
  */
 export class Engine {
@@ -162,7 +162,7 @@ export class Engine {
      * @return new {@link Engine} instance
      * @example
      * const engine = new Engine('/Users/derp/stockfish-64')
-     * console.log(typeof engine)
+     * console.lg(typeof engine)
      * // -> Engine
      */
     constructor() {
@@ -187,7 +187,7 @@ export class Engine {
      *   return line === 'uciok'
      * })
      * .then(function(lines) {
-     *   console.log('engine says', lines)
+     *   console.lg('engine says', lines)
      * })
      */
     async getBufferUntil(condition: (line: string) => boolean): Promise<string[]> {
@@ -199,7 +199,6 @@ export class Engine {
             let backlog = "";
             //listener gets new lines until condition is true
             listener = (data: string) => {
-                console.log(`data => ${data}`);
                 backlog += data;
 
                 let n = backlog.indexOf("\n");
@@ -273,23 +272,27 @@ export class Engine {
     }
 
     async dehydrate(): Promise<this> {
-        if (!this.exe) throw new Error('cannot call "quit()": engine process not running');
-        //send quit cmd and resolve when closed
-        await new Promise((resolve) => {
-            if (this.exe) {
-                this.exe.on("close", resolve);
-            }
-            this.write("quit");
-        });
-        //cleanup
         if (this.exe) {
-            if (this.exe.stdout) {
-                this.exe.stdout.removeListener("data", fromEngineLog);
+            //send quit cmd and resolve when closed
+            await new Promise((resolve) => {
+                if (this.exe) {
+                    this.exe.on("close", resolve);
+                }
+                this.write("quit");
+            });
+            //cleanup
+            if (this.exe) {
+                if (this.exe.stdout) {
+                    this.exe.stdout.removeListener("data", fromEngineLog);
+                }
+                this.exe.removeAllListeners();
+                delete this.exe;
             }
-            this.exe.removeAllListeners();
-            delete this.exe;
+            return this;
         }
-        return this;
+        else {
+            return this;
+        }
     }
 
     /**
@@ -392,11 +395,11 @@ export class Engine {
      * await engine.setoption('MultiPV', '3')
      * const emitter = engine.goInfinite()
      * emitter.on('data', a => {
-     *   console.log('data', a)
+     *   console.lg('data', a)
      * })
      * setTimeout(async () => {
      *   const bestmove = await engine.stop()
-     *   console.log('bestmove', bestmove)
+     *   console.lg('bestmove', bestmove)
      *   await engine.quit()
      * }, 5000)
      */

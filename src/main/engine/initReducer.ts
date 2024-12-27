@@ -9,9 +9,7 @@ export interface InitResult {
     options: Record<string, UciOption>;
 }
 export function initReducer(result: InitResult, line: string) {
-    console.log(`line => ${line}`);
     const cmdType = get(REGEX.cmdType.exec(line), 1);
-    console.log(`cmdType => "${cmdType}"`);
     switch (cmdType) {
         case "id":
             result.id = {

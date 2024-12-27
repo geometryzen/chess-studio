@@ -39,7 +39,10 @@ declare global {
 export class AppComponent implements OnInit {
     title = "Chess Studio";
 
-    constructor(private ipcService: IpcService, private foobarService: FoobarService) { }
+    constructor(
+        private ipcService: IpcService,
+        private foobarService: FoobarService
+    ) {}
 
     async ngOnInit(): Promise<void> {
         const n = await window.foobar.baz("World");

@@ -25,7 +25,7 @@ declare global {
     providedIn: "root"
 })
 export class IpcService {
-    constructor() { }
+    constructor() {}
 
     openDevTools() {
         window.api.electronIpcSend("dev-tools");

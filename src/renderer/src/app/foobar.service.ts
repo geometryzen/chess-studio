@@ -32,9 +32,9 @@ declare global {
     providedIn: "root"
 })
 export class FoobarService {
-    constructor() { }
+    constructor() {}
 
     baz(name: string): Promise<number> {
-        return window.foobar.baz(name)
+        return window.foobar.baz(name);
     }
 }
