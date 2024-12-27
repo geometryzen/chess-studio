@@ -25,7 +25,7 @@
         "test:test": "ng test",
         "test:lint": "ng lint",
         "test:e2e": "ng e2e",
-        "package": "electron-packager . chess-studio --asar --overwrite --prune=true --derefSymlinks=false --ignore=\"/node_modules|/src|.vscode|.editorconfig|.gitignore|.map|angular.json|README.md|package-lock.json|LICENSE\" --out=release-builds",
+        "package": "electron-packager . chess-studio --asar --overwrite --prune=true --derefSymlinks=false --ignore=\"/src|.vscode|.editorconfig|.gitignore|.map|angular.json|README.md|package-lock.json|LICENSE\" --out=release-builds",
         "release": "npm run build:prod:all  && npm run package"
     },
     "dependencies": {
