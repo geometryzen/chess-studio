@@ -2,6 +2,9 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import * as os from "os";
 import * as path from "path";
 import { DtoSystemInfo } from "./dtosysteminfo";
+import { Engine } from "./engine/Engine";
+
+const engine = new Engine();
 
 let win: BrowserWindow | null = null;
 
