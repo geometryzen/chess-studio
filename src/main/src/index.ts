@@ -2,14 +2,8 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import * as os from "os";
 import * as path from "path";
 import { DtoSystemInfo } from "./dtosysteminfo";
-import started from "electron-squirrel-startup";
 
 let win: BrowserWindow | null = null;
-
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (started) {
-    app.quit();
-}
 
 app.on("ready", createWindow);
 
