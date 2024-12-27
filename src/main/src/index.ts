@@ -43,26 +43,13 @@ function createWindow() {
     // https://stackoverflow.com/a/58548866/600559
     // Menu.setApplicationMenu(null);
 
-    //
-    // win.loadFile(path.join(app.getAppPath(), "dist/renderer/browser", "index.html"));
-    /*
-    const packagedStartURL = url.format({
-        pathname: path.join(__dirname, "chessstudio", "index.html"),
-        protocol: "file:",
-        slashes: true
-    });
-    */
-
-    // const startURL = app.isPackaged ? packagedStartURL : `http://localhost:4200`;
-
-    // win.loadURL(startURL);
-
     // Allow Page reload when not packaged.
     if (app.isPackaged) {
         win.loadFile(path.join(app.getAppPath(), "dist/renderer/browser", "index.html"));
     }
     else {
-        win.loadURL(`http://localhost:4200`);
+        win.loadFile(path.join(app.getAppPath(), "dist/renderer/browser", "index.html"));
+        // win.loadURL(`http://localhost:4200`);
     }
 
     win.on("closed", () => {
