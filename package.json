@@ -6,8 +6,8 @@
     "main": "./dist/main/index.js",
     "type": "commonjs",
     "scripts": {
-        "start": "concurrently \"npm run build:dev:all\" \"ng serve renderer\" \"wait-on http://localhost:4200 && electron .\"",
-        "start-xxx": "electron .",
+        "start-dev": "concurrently \"npm run build:dev:all\" \"ng serve renderer\" \"wait-on http://localhost:4200 && electron .\"",
+        "start": "electron .",
         "clean": "npx rimraf dist release-builds node_modules .angular",
         "build:dev:renderer": "ng build",
         "build:prod:renderer": "ng build --configuration production",

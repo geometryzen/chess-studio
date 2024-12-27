@@ -43,7 +43,6 @@ function createWindow() {
     // https://stackoverflow.com/a/58548866/600559
     // Menu.setApplicationMenu(null);
 
-    // Allow Page reload when not packaged.
     if (app.isPackaged) {
         win.loadFile(path.join(app.getAppPath(), "dist/renderer/browser", "index.html"));
     }
