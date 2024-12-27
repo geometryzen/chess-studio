@@ -1,7 +1,19 @@
-import { app, BrowserWindow, ipcMain, Menu } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
+import started from "electron-squirrel-startup";
 import * as os from "os";
 import * as path from "path";
 import { DtoSystemInfo } from "./dtosysteminfo";
+import { Engine } from "./engine/Engine.js";
+import { Config, load } from "./modules/config_io.js";
+
+let config: Config = load()[1];
+
+const engine = new Engine();
+
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (started) {
+    app.quit();
+}
 
 let win: BrowserWindow | null = null;
 
@@ -29,9 +41,29 @@ function createWindow() {
     });
 
     // https://stackoverflow.com/a/58548866/600559
-    Menu.setApplicationMenu(null);
+    // Menu.setApplicationMenu(null);
 
-    win.loadFile(path.join(app.getAppPath(), "dist/renderer/browser", "index.html"));
+    //
+    // win.loadFile(path.join(app.getAppPath(), "dist/renderer/browser", "index.html"));
+    /*
+    const packagedStartURL = url.format({
+        pathname: path.join(__dirname, "chessstudio", "index.html"),
+        protocol: "file:",
+        slashes: true
+    });
+    */
+
+    // const startURL = app.isPackaged ? packagedStartURL : `http://localhost:4200`;
+
+    // win.loadURL(startURL);
+
+    // Allow Page reload when not packaged.
+    if (app.isPackaged) {
+        win.loadFile(path.join(app.getAppPath(), "dist/renderer/browser", "index.html"));
+    }
+    else {
+        win.loadURL(`http://localhost:4200`);
+    }
 
     win.on("closed", () => {
         win = null;
@@ -55,3 +87,9 @@ ipcMain.on("request-systeminfo", () => {
         win.webContents.send("systeminfo", serializedString);
     }
 });
+
+ipcMain.handle("bazzo", (event, arg0, arg1, arg2) => {
+    console.log(`bazzo! ${arg0}`);
+    return 42;
+});
+

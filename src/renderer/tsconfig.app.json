@@ -4,6 +4,10 @@
         "outDir": "../../out-tsc/app",
         "strict": true
     },
-    "files": ["src/main.ts", "../window-interface/index.d.ts"],
-    "include": ["src/**/*.d.ts"]
+    "files": [
+        "src/main.ts"
+    ],
+    "include": [
+        "src/**/*.d.ts"
+    ]
 }

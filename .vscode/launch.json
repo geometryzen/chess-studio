@@ -20,10 +20,7 @@
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
-            "runtimeArgs": [
-                "--remote-debugging-port=9876",
-                "."
-            ],
+            "runtimeArgs": ["--remote-debugging-port=9876", "."],
             "windows": {
                 "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
             }
@@ -32,10 +29,7 @@
     "compounds": [
         {
             "name": "Main + Renderer",
-            "configurations": [
-                "Main",
-                "Renderer"
-            ]
+            "configurations": ["Main", "Renderer"]
         }
     ]
 }
