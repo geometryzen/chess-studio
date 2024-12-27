@@ -1,8 +1,14 @@
 import { app, BrowserWindow, ipcMain } from "electron";
+import log from "electron-log/main";
 import * as os from "os";
 import * as path from "path";
 import { DtoSystemInfo } from "./dtosysteminfo";
 import { Engine } from "./engine/Engine";
+
+// Optional, initialize the logger for any renderer process
+log.initialize();
+
+log.info("Log from the main process");
 
 const engine = new Engine();
 
