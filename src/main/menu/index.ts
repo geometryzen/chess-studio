@@ -9,10 +9,7 @@ const save_dialog = dialog.showSaveDialogSync || dialog.showSaveDialog;
 const open_dialog = dialog.showOpenDialogSync || dialog.showOpenDialog;
 
 export function menu_build(win: BrowserWindow, handler: MenuHandler): Menu {
-    const template: MenuItemConstructorOptions[] = [
-        engine_menu_items(win, handler),
-        help_menu_items()
-    ];
+    const template: MenuItemConstructorOptions[] = [engine_menu_items(win, handler), help_menu_items()];
     return Menu.buildFromTemplate(template);
 }
 
@@ -32,7 +29,7 @@ function engine_menu_items(win: BrowserWindow, handler: MenuHandler): MenuItemCo
                         const file = files[0];
                         if (file === process.argv[0] || path.basename(file).includes("client")) {
                             // alert(win, messages.wrong_engine_exe);
-                            win.webContents.send("call", "send_ack_engine");	// Force an ack IPC to fix our menu check state.
+                            win.webContents.send("call", "send_ack_engine"); // Force an ack IPC to fix our menu check state.
                             return;
                         }
                         handler.onChangeEngine(file);
@@ -47,9 +44,8 @@ function engine_menu_items(win: BrowserWindow, handler: MenuHandler): MenuItemCo
                         win.webContents.send("set", { engine_dialog_folder: path.dirname(file) });
                     } else {
                         console.log(`otherwise ${JSON.stringify(files)}`);
-                        win.webContents.send("call", "send_ack_engine");		// Force an ack IPC to fix our menu check state.
+                        win.webContents.send("call", "send_ack_engine"); // Force an ack IPC to fix our menu check state.
                     }
-
                 }
             }
         ]

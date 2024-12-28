@@ -4,12 +4,9 @@ import { Info } from "./engine/parseInfo";
 import { MenuHandler } from "./menu/index";
 
 export class Controller implements MenuHandler {
-
     readonly engine = new Engine();
 
-    constructor() {
-
-    }
+    constructor() {}
 
     async onChangeEngine(filePath: string): Promise<void> {
         try {
@@ -35,13 +32,11 @@ export class Controller implements MenuHandler {
                 stopped.bestmove;
                 subInfo.unsubscribe();
                 subMove.unsubscribe();
-                console.log(`stopped ${JSON.stringify(stopped)}`)
+                console.log(`stopped ${JSON.stringify(stopped)}`);
                 // await engine.dehydrate();
             }, 5000);
-        }
-        catch (e) {
+        } catch (e) {
             console.error(`onChangeEngine(${filePath}). Cause: ${e}`);
         }
-
     }
 }

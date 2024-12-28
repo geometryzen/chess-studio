@@ -4,7 +4,6 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatSidenavModule } from "@angular/material/sidenav";
 import { MatToolbarModule } from "@angular/material/toolbar";
 import { RouterModule } from "@angular/router";
-import { NavlistComponent } from "./components/navlist/navlist.component";
 import { FoobarService } from "./foobar.service";
 import { IpcService } from "./ipc.service";
 
@@ -40,7 +39,7 @@ declare global {
     selector: "app-root",
     templateUrl: "./app.component.html",
     styleUrls: ["./app.component.scss"],
-    imports: [MatButtonModule, MatIconModule, MatSidenavModule, MatToolbarModule, NavlistComponent, RouterModule],
+    imports: [MatButtonModule, MatIconModule, MatSidenavModule, MatToolbarModule, RouterModule],
     standalone: true
 })
 export class AppComponent implements OnInit {
@@ -49,7 +48,7 @@ export class AppComponent implements OnInit {
     constructor(
         private ipcService: IpcService,
         private foobarService: FoobarService
-    ) { }
+    ) {}
 
     async ngOnInit(): Promise<void> {
         const n = await window.foobar.baz("World");

@@ -61,8 +61,8 @@ export async function example() {
     await engine.setoption("MultiPV", "4");
     await engine.isready();
     engine.position("startpos", ["e2e4", "e7e5"]);
-    engine.info$.subscribe(function (info: Info) { });
-    engine.bestmove$.subscribe(function (bestmove: BestMove) { });
+    engine.info$.subscribe(function (info: Info) {});
+    engine.bestmove$.subscribe(function (bestmove: BestMove) {});
     engine.go({ depth: 4 });
     setTimeout(async () => {
         const bestmove = await engine.stop();
@@ -192,8 +192,8 @@ export class Engine {
      */
     async getBufferUntil(condition: (line: string) => boolean): Promise<string[]> {
         const lines: string[] = [];
-        let listener: (data: string) => void = function () { };
-        let reject_ref: (reason?: any) => void = function () { };
+        let listener: (data: string) => void = function () {};
+        let reject_ref: (reason?: any) => void = function () {};
         const p = new Promise<void>((resolve, reject) => {
             reject_ref = reject;
             let backlog = "";
@@ -289,8 +289,7 @@ export class Engine {
                 delete this.exe;
             }
             return this;
-        }
-        else {
+        } else {
             return this;
         }
     }

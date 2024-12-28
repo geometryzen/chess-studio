@@ -1,5 +1,11 @@
-<chess-board id="board" orientation="black" position="start" draggable-pieces>
+<chess-board id="board" orientation="white" position="start" draggable-pieces>
 </chess-board>
+<label>Status:</label>
+<div id="status">{{status}}</div>
+<label>FEN:</label>
+<div id="fen">{{fen}}</div>
+<label>PGN:</label>
+<div id="pgn">{{pgn}}</div>
 <button (click)="flip()">Flip Board</button>
 <button (click)="clear()">Clear Board</button>
 <button (click)="reset()">Reset Board</button>
