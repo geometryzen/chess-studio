@@ -5,7 +5,7 @@ import * as path from "path";
 import { Controller } from "./controller";
 import { DtoSystemInfo } from "./dtosysteminfo";
 import { Engine } from "./engine/Engine";
-import { menu_build } from "./menu/index";
+import { menu_build } from "./menu/menu";
 
 // Optional, initialize the logger for any renderer process
 log.initialize();
@@ -26,8 +26,8 @@ app.on("activate", () => {
 
 function createWindow() {
     win = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1400,
+        height: 1000,
         resizable: true,
         webPreferences: {
             // Disabled Node integration
@@ -40,6 +40,8 @@ function createWindow() {
     });
 
     const controller = new Controller();
+
+    controller.restart_engine();
 
     const menu = menu_build(win, controller);
 

@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
-import { DtoSystemInfo } from "../../../ipc-dtos/dtosysteminfo";
+import { DtoSystemInfo } from "../../../shared/dtosysteminfo";
 
 declare global {
     interface Window {
@@ -30,7 +30,7 @@ export class IpcService {
     openDevTools() {
         window.api.electronIpcSend("dev-tools");
     }
-
+    // Provides an example of making a call using an Observable.
     getSystemInfoAsync(): Observable<DtoSystemInfo> {
         return new Observable((subscriber) => {
             window.api.electronIpcOnce("systeminfo", (event, arg) => {

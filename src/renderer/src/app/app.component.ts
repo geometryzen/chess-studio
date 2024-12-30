@@ -7,34 +7,6 @@ import { RouterModule } from "@angular/router";
 import { FoobarService } from "./foobar.service";
 import { IpcService } from "./ipc.service";
 
-// The following TypeScript definitions have the same effect.
-
-/*
-declare global {
-    namespace foobar {
-        function baz(name: string): Promise<number>;
-    }
-}
-*/
-/*
-export interface IElectronAPI {
-    baz: (name: string) => Promise<number>,
-}
-
-declare global {
-    interface Window {
-        foobar: IElectronAPI
-    }
-}
-*/
-declare global {
-    interface Window {
-        foobar: {
-            baz: (name: string) => Promise<number>;
-        };
-    }
-}
-
 @Component({
     selector: "app-root",
     templateUrl: "./app.component.html",
@@ -51,11 +23,20 @@ export class AppComponent implements OnInit {
     ) {}
 
     async ngOnInit(): Promise<void> {
-        const n = await window.foobar.baz("World");
-        console.log(`baz("World") => ${n}`);
-
-        const m = this.foobarService.baz("Wow!");
+        const n = this.foobarService.baz("Wow!");
         console.log(`foobar.baz("Wow!!!") => ${n}`);
+
+        this.foobarService.onGameClear(() => {
+            console.log(`onGameClear`);
+        });
+
+        this.foobarService.onNewGameClassic(() => {
+            console.log(`onNewGameClassic`);
+        });
+
+        this.foobarService.onEngineChange((file) => {
+            console.log(`onEngineChange received file=${file}`);
+        });
     }
 
     clickDevTools() {

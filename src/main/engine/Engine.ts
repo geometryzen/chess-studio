@@ -41,6 +41,7 @@ interface TypeSafeEventEmitter<C extends StringKeyedObject> extends EventEmitter
 // https://page.mi.fu-berlin.de/block/uci.htm
 // https://gist.github.com/DOBRO/2592c6dad754ba67e6dcaec8c90165bf
 // https://www.chessprogramming.org/UCI
+// https://official-stockfish.github.io/docs/stockfish-wiki/UCI-&-Commands.html
 
 const log = debug("uci:Engine");
 const engineLog = debug("uci:Engine:log");
@@ -151,7 +152,7 @@ export async function example() {
  */
 export class Engine {
     id: { name: string | null; author: string | null };
-    readonly options: Map<string, UciOption> = new Map();
+    readonly options: Record<string, UciOption> = {};
     exe?: ChildProcess;
     private readonly emitter: TypeSafeEventEmitter<Events> = new EventEmitter();
     readonly info$: Observable<Info> = fromEvent(this.emitter, "info") as Observable<Info>;
@@ -260,12 +261,14 @@ export class Engine {
             id: {},
             options: {}
         } as InitResult);
-        if (id) this.id = id;
+        if (id) {
+            this.id = id;
+        }
         if (options) {
             const keys = Object.keys(options);
             keys.forEach((key) => {
                 const value = options[key];
-                this.options.set(key, value);
+                this.options[key] = value;
             });
         }
         return this;
