@@ -13,3 +13,6 @@ if (environment.production) {
 platformBrowserDynamic()
     .bootstrapModule(AppModule)
     .catch((err) => console.error(err));
+
+// Inform the preload script that the application has been loaded.
+postMessage({ payload: 'removeLoading' }, '*');

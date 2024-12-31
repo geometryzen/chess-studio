@@ -1,9 +1,12 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit } from "@angular/core";
-import { Chess } from "chess.js";
 import "chessboard-element";
 import { ChessBoardElement, PositionObject } from "chessboard-element";
 import { fromEvent, Observable } from "rxjs";
 import { FoobarService } from "src/app/foobar.service";
+// Usage of chess.js is temporary until using our own tree-based implementation.
+// The goal will be to achieve at least parity of functionality.
+// This should be proved using tests.
+import { Chess } from "../../../libs/chess";
 
 interface ChangeEvent extends Event {
     detail: {
