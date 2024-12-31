@@ -21,12 +21,14 @@ jobs:
             - name: Install Dependencies
               run: npm install --force
 
-            - name: npm run release
+            - name: Build Release Files
               run: npm run release
-            - uses: actions/upload-artifact@v4.0.0
+
+            - name: Upload Artifact
+              uses: actions/upload-artifact@v4.0.0
               with:
                   name: chess-studio-${{ matrix.os }}
-                  path: "release-builds"
+                  path: "release/"
                   retention-days: 5
               env:
                   CI: true
