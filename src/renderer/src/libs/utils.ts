@@ -228,19 +228,19 @@ function SafeStringHTML(s: string): string | undefined {
     return s;
 }
 
-function UnsafeStringHTML(s: string): string | undefined {
+export function UnsafeStringHTML(s: string | unknown): string | undefined {
     if (typeof s !== "string") {
         return undefined;
     }
-    s = ReplaceAll(s, `&quot;`, `"`);
-    s = ReplaceAll(s, `&apos;`, `'`);
-    s = ReplaceAll(s, `&gt;`, `>`);
-    s = ReplaceAll(s, `&lt;`, `<`);
-    s = ReplaceAll(s, `&amp;`, `&`); // So I guess do this last.
-    return s;
+    let escaped = ReplaceAll(s, `&quot;`, `"`);
+    escaped = ReplaceAll(escaped, `&apos;`, `'`);
+    escaped = ReplaceAll(escaped, `&gt;`, `>`);
+    escaped = ReplaceAll(escaped, `&lt;`, `<`);
+    escaped = ReplaceAll(escaped, `&amp;`, `&`); // So I guess do this last.
+    return escaped;
 }
 
-function SafeStringPGN(s: string): string | undefined {
+export function SafeStringPGN(s: string): string | undefined {
     if (typeof s !== "string") {
         return undefined;
     }

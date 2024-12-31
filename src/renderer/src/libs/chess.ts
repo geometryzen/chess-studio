@@ -77,16 +77,46 @@ interface History {
 }
 
 export type Move = {
+    /**
+     * The color of the piece that was moved.
+     */
     color: Color;
+    /**
+     * The originating square in algebraic notation.
+     */
     from: Square;
+    /**
+     * The destination square in algebraic notation.
+     */
     to: Square;
+    /**
+     * The piece type that was moved.
+     */
     piece: PieceSymbol;
+    /**
+     * The piece type that was captured.
+     */
     captured?: PieceSymbol;
     promotion?: PieceSymbol;
+    /**
+     * Something to do with the prettying of the move notation?
+     */
     flags: string;
+    /**
+     * The short algebraic notation for the move.
+     */
     san: string;
+    /**
+     * The long algebraic notation for the move.
+     */
     lan: string;
+    /**
+     * The position before the move was made in FEN.
+     */
     before: string;
+    /**
+     * The position after the move was made in FEN.
+     */
     after: string;
 };
 

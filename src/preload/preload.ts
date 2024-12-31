@@ -4,7 +4,7 @@
 // This script exposes specific Electron APIs to the Angular window.
 
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
-import { CHANNEL_ACTION_BOARD_FLIP, CHANNEL_ACTION_GAME_CLEAR, CHANNEL_ACTION_GAME_ENTER_MODE_SETUP, CHANNEL_ACTION_GAME_EXIT_MODE_SETUP, CHANNEL_ACTION_GAME_NEW, CHANNEL_ENGINE_CHANGED } from "../shared/ipc-constants";
+import { CHANNEL_ACTION_BOARD_FLIP, CHANNEL_ACTION_GAME_CLEAR, CHANNEL_ACTION_GAME_ENTER_MODE_SETUP, CHANNEL_ACTION_GAME_EXIT_MODE_SETUP, CHANNEL_ACTION_GAME_NEW, CHANNEL_ACTION_TREE_END, CHANNEL_ACTION_TREE_NEXT, CHANNEL_ACTION_TREE_PREVIOUS, CHANNEL_ACTION_TREE_ROOT, CHANNEL_ENGINE_CHANGED } from "../shared/ipc-constants";
 
 // The following makes versions a global that is accessible in the render process.
 // "foobar" is referred to as an apiKey and the object is an api.
@@ -18,6 +18,10 @@ contextBridge.exposeInMainWorld("foobar", {
     onGameClear: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_GAME_CLEAR, (_event: IpcRendererEvent) => callback()),
     onGameSetup: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_GAME_ENTER_MODE_SETUP, (_event: IpcRendererEvent) => callback()),
     onGamePlay: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_GAME_EXIT_MODE_SETUP, (_event: IpcRendererEvent) => callback()),
+    onTreeRoot: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_TREE_ROOT, (_event: IpcRendererEvent) => callback()),
+    onTreeEnd: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_TREE_END, (_event: IpcRendererEvent) => callback()),
+    onTreeBackward: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_TREE_PREVIOUS, (_event: IpcRendererEvent) => callback()),
+    onTreeForward: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_TREE_NEXT, (_event: IpcRendererEvent) => callback()),
     onBoardFlip: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_BOARD_FLIP, (_event: IpcRendererEvent) => callback()),
     onEngineChange: (callback: (filename: string) => void) => ipcRenderer.on(CHANNEL_ENGINE_CHANGED, (_event: IpcRendererEvent, value: string) => callback(value))
 });

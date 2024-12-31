@@ -6,7 +6,7 @@ import { Position } from "./Position";
 import { Table } from "./Table";
 import { DateString } from "./utils";
 
-export function NewRoot(board: Position): Node {
+export function NewRoot(board?: Position): Node {
     // Arg is a board (position) object, not a FEN
 
     if (!board) {
@@ -31,7 +31,7 @@ export function NewRoot(board: Position): Node {
     return root;
 }
 
-let next_node_id = 1;
+export let next_node_id = 1;
 let live_nodes: Record<string, Node> = Object.create(null);
 
 /**
@@ -84,8 +84,13 @@ export class Node {
         this.children = [];
     }
 
-    make_move(s: string, force_new_node: boolean): Node {
-        // s must be exactly a legal move, including having promotion char iff needed (e.g. e2e1q)
+    /**
+     *
+     * @param s must be exactly a legal move, including having promotion char iff needed (e.g. e2e1q)
+     * @param force_new_node
+     * @returns
+     */
+    make_move(s: string, force_new_node?: boolean): Node {
 
         if (!force_new_node) {
             for (let child of this.children) {
@@ -275,7 +280,7 @@ export class Node {
         return this.__nice_move;
     }
 
-    token(stats_flag: boolean, force_number_flag: boolean): string {
+    token(stats_flag: boolean, force_number_flag?: boolean): string {
         // The complete token when writing the move, including number string if necessary,
         // which depends on position within variations etc and so cannot easily be cached.
         // We don't do brackets because closing brackets are complicated.
@@ -430,7 +435,7 @@ export class Node {
 // in general I don't know, but we also take this opportunity to
 // clear nodes from the live_list.
 
-function DestroyTree(node: Node): void {
+export function DestroyTree(node: Node): void {
     if (!node || node.destroyed) {
         console.log("Warning: DestroyTree() called with invalid arg");
         return;

@@ -10,7 +10,7 @@ export class Controller implements MenuHandler {
 
     constructor() {
         this.config = load();
-        console.log(`${JSON.stringify(this.config)}`);
+        // console.lg(`${JSON.stringify(this.config)}`);
     }
 
     getEngineFolder(): string {

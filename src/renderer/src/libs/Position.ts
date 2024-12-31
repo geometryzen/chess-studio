@@ -14,20 +14,39 @@ function coords_from_algebraic(s: string): [number, number] {
     return [x, y];
 }
 
-function algebraic_from_coords(x: number, y: number): string {
+/**
+ * The only place this is used is in the generation of the coordinate lookup table.
+ * This means that the inputs are guaranteed to be in range.
+ * An exception is raised if the inputs are not correct.
+ * @param x
+ * @param y
+ * @returns
+ */
+function algebraic_from_coords(x: number, y: number): Square {
     // e.g. (1, 1) --> "b7"
     if (typeof x !== "number" || typeof y !== "number" || x < 0 || x > 7 || y < 0 || y > 7) {
-        return "??";
+        throw new Error();
     }
-    let xs = String.fromCharCode(x + 97);
-    let ys = String.fromCharCode(8 - y + 48);
-    return xs + ys;
+    const xs = String.fromCharCode(x + 97);
+    const ys = String.fromCharCode(8 - y + 48);
+    return (xs + ys) as Square;
 }
+
+export type Square =
+    'a8' | 'b8' | 'c8' | 'd8' | 'e8' | 'f8' | 'g8' | 'h8' |
+    'a7' | 'b7' | 'c7' | 'd7' | 'e7' | 'f7' | 'g7' | 'h7' |
+    'a6' | 'b6' | 'c6' | 'd6' | 'e6' | 'f6' | 'g6' | 'h6' |
+    'a5' | 'b5' | 'c5' | 'd5' | 'e5' | 'f5' | 'g5' | 'h5' |
+    'a4' | 'b4' | 'c4' | 'd4' | 'e4' | 'f4' | 'g4' | 'h4' |
+    'a3' | 'b3' | 'c3' | 'd3' | 'e3' | 'f3' | 'g3' | 'h3' |
+    'a2' | 'b2' | 'c2' | 'd2' | 'e2' | 'f2' | 'g2' | 'h2' |
+    'a1' | 'b1' | 'c1' | 'd1' | 'e1' | 'f1' | 'g1' | 'h1'
+
 
 export interface Point {
     x: number;
     y: number;
-    s: string;
+    s: Square;
 }
 
 function numbers_between(a: number, b: number): number[] {
@@ -50,7 +69,7 @@ const xy_lookup: Readonly<Point>[][] = [];
 for (let x = 0; x < 8; x++) {
     xy_lookup.push([]);
     for (let y = 0; y < 8; y++) {
-        xy_lookup[x].push({ x: -1, y: -1, s: "" });
+        xy_lookup[x].push({ x: -1, y: -1, s: "" as Square });
     }
 }
 for (let x = 0; x < 8; x++) {
@@ -1398,8 +1417,13 @@ export class Position {
             return `${this.fullmove}...`;
         }
     }
-
-    fen(friendly_flag: boolean, book_flag?: boolean) {
+    /**
+     *
+     * @param friendly_flag for when the engine isn't the consumer.
+     * @param book_flag  for when we should omit the move numbers.
+     * @returns
+     */
+    fen(friendly_flag?: boolean, book_flag?: boolean) {
         // friendly_flag - for when the engine isn't the consumer.
         // book_flag - for when we should omit the move numbers.
 

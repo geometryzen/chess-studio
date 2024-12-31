@@ -1,6 +1,11 @@
 import { create_position, point_from_s, point_from_xy, Position } from "./Position";
 import { replace_all } from "./replace_all";
 
+/**
+ * Loads a FEN and validates it.
+ * @param fen
+ * @returns
+ */
 export function LoadFEN(fen: string): Position {
     if (fen.length > 200) {
         throw "Invalid FEN - size";

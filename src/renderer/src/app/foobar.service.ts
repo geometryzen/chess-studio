@@ -28,6 +28,10 @@ declare global {
             onGameSetup(callback: () => void): void;
             onGamePlay(callback: () => void): void;
             onNewGameClassic(callback: () => void): void;
+            onTreeRoot(callback: () => void): void;
+            onTreeEnd(callback: () => void): void;
+            onTreeBackward(callback: () => void): void;
+            onTreeForward(callback: () => void): void;
             onBoardFlip(callback: () => void): void;
             onEngineChange(callback: (filename: string) => void): void;
         };
@@ -38,7 +42,7 @@ declare global {
     providedIn: "root"
 })
 export class FoobarService {
-    constructor() {}
+    constructor() { }
 
     baz(name: string): Promise<number> {
         return window.foobar.baz(name);
@@ -58,6 +62,22 @@ export class FoobarService {
 
     onNewGameClassic(callback: () => void): void {
         window.foobar.onNewGameClassic(callback);
+    }
+
+    onTreeRoot(callback: () => void): void {
+        window.foobar.onTreeRoot(callback);
+    }
+
+    onTreeEnd(callback: () => void): void {
+        window.foobar.onTreeEnd(callback);
+    }
+
+    onTreeBackward(callback: () => void): void {
+        window.foobar.onTreeBackward(callback);
+    }
+
+    onTreeForward(callback: () => void): void {
+        window.foobar.onTreeForward(callback);
     }
 
     onBoardFlip(callback: () => void): void {

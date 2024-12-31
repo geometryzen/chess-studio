@@ -20,23 +20,11 @@ export class AppComponent implements OnInit {
     constructor(
         private ipcService: IpcService,
         private foobarService: FoobarService
-    ) {}
+    ) { }
 
     async ngOnInit(): Promise<void> {
-        const n = this.foobarService.baz("Wow!");
-        console.log(`foobar.baz("Wow!!!") => ${n}`);
-
-        this.foobarService.onGameClear(() => {
-            console.log(`onGameClear`);
-        });
-
-        this.foobarService.onNewGameClassic(() => {
-            console.log(`onNewGameClassic`);
-        });
-
-        this.foobarService.onEngineChange((file) => {
-            console.log(`onEngineChange received file=${file}`);
-        });
+        // const n = this.foobarService.baz("Wow!");
+        // console.lg(`foobar.baz("Wow!!!") => ${n}`);
     }
 
     clickDevTools() {

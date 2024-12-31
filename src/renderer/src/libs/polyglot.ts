@@ -847,7 +847,7 @@ export function KeyFromBoard(board: Position): bigint | "" {
 
     return key;
 }
-
+/*
 function ParsePolyglotBlob(buf: Buffer, off: number): { key: bigint; move: string; weight: number } {
     // Args are Buffer + offset.
 
@@ -875,6 +875,7 @@ function ParsePolyglotBlob(buf: Buffer, off: number): { key: bigint; move: strin
 
     return { key, move, weight };
 }
+*/
 /*
 function SortAndDeclutterPGNBook(book) {
 
