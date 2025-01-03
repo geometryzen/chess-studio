@@ -42,13 +42,9 @@ export const load = () => {
 export const create_if_needed = () => {
     // Note that this must be called fairly late, when userData directory exists.
 
-    try {
-        if (!existsSync(script_dir_path)) {
-            mkdirSync(script_dir_path);
-            let example_path = join(script_dir_path, example_file);
-            writeFileSync(example_path, example);
-        }
-    } catch (err) {
-        console.log(`${err}`);
+    if (!existsSync(script_dir_path)) {
+        mkdirSync(script_dir_path);
+        let example_path = join(script_dir_path, example_file);
+        writeFileSync(example_path, example);
     }
 };

@@ -3,7 +3,7 @@ import { SafeStringPGN, UnsafeStringHTML } from "./utils";
 
 export function make_pgn_string(node: Node) {
     const root = node.get_root();
-    let start_fen = root.board.fen(true);
+    let start_fen = root.position.fen(true);
 
     if (!root.tags) {
         // This should be impossible.
@@ -18,7 +18,7 @@ export function make_pgn_string(node: Node) {
     if (terminal_reason === "") {
         // Pass - leave it unchanged since we know nothing
     } else if (terminal_reason === "Checkmate") {
-        root.tags!.Result = main_line_end.board.active === "w" ? "0-1" : "1-0";
+        root.tags!.Result = main_line_end.position.active === "w" ? "0-1" : "1-0";
     } else {
         root.tags!.Result = "1/2-1/2";
     }
@@ -39,7 +39,7 @@ export function make_pgn_string(node: Node) {
     }
 
     if (start_fen !== "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
-        if (root.board.normalchess === false) {
+        if (root.position.normalchess === false) {
             tags.push(`[Variant "Chess960"]`);
         }
         tags.push(`[FEN "${start_fen}"]`);

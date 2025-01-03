@@ -16,7 +16,7 @@ export interface Config {
 export const defaults: Config = {};
 
 export const load = (configPath: string): Config => {
-    console.log(`load() filepath=${configPath}`);
+
     const cfg: Config = {};
 
     if (existsSync(configPath)) {
@@ -24,19 +24,6 @@ export const load = (configPath: string): Config => {
         Object.assign(cfg, JSON.parse(raw));
     }
 
-    // Copy default values for any missing keys into the config...
-    // We use a copy so that any objects that are assigned are not the default objects.
-    /*
-    let defaults_copy = JSON.parse(JSON.stringify(defaults));
-
-    for (let key of Object.keys(defaults_copy)) {
-        if (cfg.hasOwnProperty(key) === false) {
-            (cfg as unknown as Record<string, unknown>)[key] = defaults_copy[key];
-        }
-    }
-
-    fix(cfg);
-    */
     return cfg;
 };
 

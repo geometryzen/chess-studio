@@ -20,18 +20,13 @@ import {
     CHANNEL_EVENT_ANALYSIS_MOVE_CANDIDATE,
     CHANNEL_EVENT_ANALYSIS_MOVE_SCORE,
     CHANNEL_INVOKE_ANALYSIS_GO,
-    CHANNEL_INVOKE_ANALYSIS_HALT,
-    CHANNEL_INVOKE_BAZZO
+    CHANNEL_INVOKE_ANALYSIS_HALT
 } from "../shared/ipc-constants";
 
 // The following makes versions a global that is accessible in the render process.
 // "foobar" is referred to as an apiKey and the object is an api.
 // "foobar" is the name of a property on window in render process.
 contextBridge.exposeInMainWorld("foobar", {
-    baz: (name: string) => {
-        // "bazzo" is referred to as a channel.
-        return ipcRenderer.invoke(CHANNEL_INVOKE_BAZZO, name);
-    },
     go: (fen: string) => {
         return ipcRenderer.invoke(CHANNEL_INVOKE_ANALYSIS_GO, fen);
     },

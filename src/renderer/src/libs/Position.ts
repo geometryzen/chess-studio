@@ -281,8 +281,7 @@ export class Position {
         // must "work" for such illegal moves.
 
         if (typeof s !== "string" || s.length < 4) {
-            console.log("Position.move called with arg", s);
-            return this;
+            throw new Error(`Position.move called with arg ${s}`);
         }
 
         // s = this.c960_castling_converter(s);		// Too many ramifications to think about.
@@ -291,13 +290,11 @@ export class Position {
         let [x2, y2] = coords_from_algebraic(s.slice(2, 4));
 
         if (x1 < 0 || y1 < 0 || x1 > 7 || y1 > 7 || x2 < 0 || y2 < 0 || x2 > 7 || y2 > 7) {
-            console.log("Position.move called with arg", s);
-            return this;
+            throw new Error(`Position.move called with arg ${s}`);
         }
 
         if (this.state[x1][y1] === "") {
-            console.log("position_prototype.move called with empty source, arg was", s);
-            return this;
+            throw new Error(`Position.move called with empty source arg ${s}`);
         }
 
         let ret = this.copy();
@@ -1346,6 +1343,11 @@ export class Position {
         return s;
     }
 
+    /**
+     * This returns a short algebraic move from a long algebraic move.
+     * @param s
+     * @returns
+     */
     nice_string(s: string): string {
         // Given some raw (but valid) UCI move string, return a nice human-readable
         // string for display in the browser window. This string should never be
@@ -1356,7 +1358,7 @@ export class Position {
 
         // s = this.c960_castling_converter(s);		// Too many ramifications to think about.
 
-        let source = point_from_s(s.slice(0, 2));
+        const source = point_from_s(s.slice(0, 2));
         let dest = point_from_s(s.slice(2, 4));
 
         if (!source || !dest) {
@@ -1396,7 +1398,7 @@ export class Position {
             // Would the move be ambiguous?
             // IMPORTANT: note that the actual move will not necessarily be valid_moves[0].
 
-            let possible_sources = this.find(piece);
+            const possible_sources = this.find(piece);
             let possible_moves: string[] = [];
             let valid_moves: string[] = [];
 
@@ -1423,10 +1425,10 @@ export class Position {
             if (valid_moves.length === 2) {
                 // Partial disambiguation.
 
-                let source1 = assert_point(point_from_s(valid_moves[0].slice(0, 2)));
-                let source2 = assert_point(point_from_s(valid_moves[1].slice(0, 2)));
+                const source1 = assert_point(point_from_s(valid_moves[0].slice(0, 2)));
+                const source2 = assert_point(point_from_s(valid_moves[1].slice(0, 2)));
 
-                let disambiguator;
+                let disambiguator: string;
 
                 if (source1.x === source2.x) {
                     disambiguator = source.s[1]; // Note source (the true source), not source1
@@ -1452,7 +1454,7 @@ export class Position {
 
         // So it's a pawn. Pawn moves are never ambiguous.
 
-        let ret;
+        let ret: string;
 
         if (source.x === dest.x) {
             ret = dest.s;

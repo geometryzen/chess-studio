@@ -6,13 +6,23 @@ import { Position } from "./Position";
 import { DateString } from "./utils";
 
 export class Tree {
+    /**
+     * The root node of the analysis tree.
+     */
     root: Node = NewRoot();
+    /**
+     * The current node in the analysis tree.
+     */
     node: Node;
-    tree_version = 0;
+    /**
+     * The version observable is initialized to zero.
+     * It is incremented for the following reasons:
+     *
+     */
     readonly version$ = new BehaviorSubject(0);
     constructor() {
         this.node = this.root;
-        this.node.table.autopopulate(this.node);
+        this.node.position_info.ensure_candidate_moves(this.node);
     }
     /**
      *
@@ -37,7 +47,7 @@ export class Tree {
         this.root.tags = tags;
 
         this.node = this.root;
-        this.node.table.autopopulate(this.node);
+        this.node.position_info.ensure_candidate_moves(this.node);
     }
     clear(): void {
         // We can't use LoadFEN here because the FEN gets validated.
@@ -60,20 +70,20 @@ export class Tree {
         this.root.tags = tags;
 
         this.node = this.root;
-        this.node.table.autopopulate(this.node);
+        this.node.position_info.ensure_candidate_moves(this.node);
     }
     turn(): "w" | "b" {
-        return this.node.board.active;
+        return this.node.position.active;
     }
     isDrawByFiftyMoves(): boolean {
-        const board = this.node.board;
+        const board = this.node.position;
         return board.halfmove >= 100; // 50 moves per side = 100 half moves
     }
     isCheck(): boolean {
-        return this.node.board.king_in_check();
+        return this.node.position.king_in_check();
     }
     isCheckmate(): boolean {
-        const board = this.node.board;
+        const board = this.node.position;
         return board.king_in_check() && board.no_moves();
     }
     isDraw(): boolean {
@@ -83,18 +93,18 @@ export class Tree {
         return this.isCheckmate() || this.isStalemate() || this.isDraw();
     }
     isInsufficientMaterial(): boolean {
-        const board = this.node.board;
+        const board = this.node.position;
         return board.insufficient_material();
     }
     isStalemate(): boolean {
-        const board = this.node.board;
+        const board = this.node.position;
         return !board.king_in_check() && board.no_moves();
     }
     isThreefoldRepetition(): boolean {
         return this.node.is_triple_rep();
     }
     fen(friendly_flag?: boolean): string {
-        return this.node.board.fen(friendly_flag);
+        return this.node.position.fen(friendly_flag);
     }
     pgn(): string {
         return make_pgn_string(this.node);
@@ -102,7 +112,7 @@ export class Tree {
     reset(): void {
         this.root = NewRoot();
         this.node = this.root;
-        this.node.table.autopopulate(this.node);
+        this.node.position_info.ensure_candidate_moves(this.node);
     }
     private increment_version() {
         this.version$.next(this.version$.getValue() + 1);
@@ -111,9 +121,7 @@ export class Tree {
         DestroyTree(this.root);
         this.root = root;
         this.node = root;
-        this.node.table.autopopulate(this.node);
-        this.version$.next(this.version$.getValue());
-        this.tree_version++;
+        this.node.position_info.ensure_candidate_moves(this.node);
         this.increment_version();
         return true;
     }
@@ -200,28 +208,32 @@ export class Tree {
         let parent = this.node.parent;
         this.node.detach();
         this.node = parent;
-        this.tree_version++;
         this.increment_version();
         return true;
     }
     /**
      *
-     * @param s must be exactly a legal move, including having promotion char iff needed (e.g. e2e1q)
-     * @returns true (always)
+     * @param move must be exactly a legal move, including having promotion char iff needed (e.g. e2e1q)
      */
-    make_move(s: string): true {
-        // s must be exactly a legal move, including having promotion char iff needed (e.g. e2e1q)
+    make_move(move: string): void {
 
-        let next_node_id__initial = next_node_id;
-        this.node = this.node.make_move(s);
+        // We want to detect whether making the move creates a new node in the tree.
+        const orig_node_id = next_node_id;
 
-        if (next_node_id !== next_node_id__initial) {
-            // NewNode() was called
-            this.tree_version++;
+        // The current node becomes the node
+        this.node = this.node.make_move(move);
+
+        this.node.position_info.ensure_candidate_moves(this.node);
+
+        //
+        if (next_node_id !== orig_node_id) {
+            // A node was constructed as a result of the move.
+            this.increment_version();
         }
-
-        this.increment_version(); // Could potentially call something else here.
-        return true;
+        else {
+            // A node was not constructed as a result of the move because it already existed.
+        }
+        this.node.position_info.ensure_candidate_moves(this.node);
     }
 
     make_move_sequence(moves: string[], set_this_node = true): boolean {
@@ -242,10 +254,9 @@ export class Tree {
 
         if (next_node_id !== next_node_id__initial) {
             // NewNode() was called
-            this.tree_version++;
+            this.increment_version();
         }
 
-        this.increment_version();
         return true;
     }
 
@@ -275,7 +286,6 @@ export class Tree {
         }
 
         if (changed) {
-            this.tree_version++;
             this.increment_version();
         }
     }
@@ -301,7 +311,6 @@ export class Tree {
         }
 
         if (changed) {
-            this.tree_version++;
             this.increment_version();
         }
     }
@@ -321,7 +330,6 @@ export class Tree {
         }
 
         if (changed) {
-            this.tree_version++;
             this.increment_version(); // This may be the 2nd draw since promote_to_main_line() may have drawn. Bah.
         }
     }
@@ -331,7 +339,6 @@ export class Tree {
             for (let child of this.node.children) {
                 child.detach();
             }
-            this.tree_version++;
             this.increment_version();
         }
     }
@@ -349,7 +356,6 @@ export class Tree {
         }
 
         if (changed) {
-            this.tree_version++;
             this.increment_version();
         }
     }

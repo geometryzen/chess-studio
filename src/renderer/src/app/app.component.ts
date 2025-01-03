@@ -4,7 +4,6 @@ import { MatIconModule } from "@angular/material/icon";
 import { MatSidenavModule } from "@angular/material/sidenav";
 import { MatToolbarModule } from "@angular/material/toolbar";
 import { RouterModule } from "@angular/router";
-import { FoobarService } from "./foobar.service";
 import { IpcService } from "./ipc.service";
 
 @Component({
@@ -17,15 +16,9 @@ import { IpcService } from "./ipc.service";
 export class AppComponent implements OnInit {
     title = "Chess Studio";
 
-    constructor(
-        private ipcService: IpcService,
-        private foobarService: FoobarService
-    ) {}
+    constructor(private ipcService: IpcService) {}
 
-    async ngOnInit(): Promise<void> {
-        const n = this.foobarService.baz("Wow!");
-        console.log(`foobar.baz("Wow!!!") => ${n}`);
-    }
+    async ngOnInit(): Promise<void> {}
 
     clickDevTools() {
         this.ipcService.openDevTools();

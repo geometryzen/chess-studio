@@ -3,7 +3,7 @@
 import { LoadFEN } from "./fen";
 import { KeyFromBoard } from "./polyglot";
 import { Position } from "./Position";
-import { Table } from "./Table";
+import { PositionInfo } from "./PositionInfo";
 import { DateString } from "./utils";
 
 export function NewRoot(board?: Position): Node {
@@ -32,42 +32,46 @@ export function NewRoot(board?: Position): Node {
 }
 
 export let next_node_id = 1;
-let live_nodes: Record<string, Node> = Object.create(null);
+const node_from_id: Record<string, Node> = Object.create(null);
 
 /**
  *
  */
 export class Node {
     tags: Record<string, string> | null = null;
-    id: number;
+    readonly id: number;
     children: Node[];
     parent: Node | null;
-    move: string | null;
-    board: Position;
+    /**
+     * The move that caused the construction of this node.
+     */
+    readonly move: string | null;
+    position: Position;
     depth: number;
-    table: Table;
+    position_info: PositionInfo;
     searchmoves: unknown[];
     __nice_move: unknown | null;
     destroyed: boolean;
     graph_length_knower: { val: number };
 
     constructor(parent: Node | null, move: string | null, board_for_root: Position | null) {
+        console.log(`constructor Node move=${move}`);
         // move must be legal; board is only relevant for root nodes
 
         this.id = next_node_id++;
-        live_nodes[this.id.toString()] = this;
+        node_from_id[this.id.toString()] = this;
 
         if (parent) {
             parent.children.push(this);
             this.parent = parent;
             this.move = move;
-            this.board = parent.board.move(move as string);
+            this.position = parent.position.move(move as string);
             this.depth = parent.depth + 1;
             this.graph_length_knower = parent.graph_length_knower; // 1 object every node points to, a bit lame
         } else {
             this.parent = null;
             this.move = null;
-            this.board = board_for_root as Position;
+            this.position = board_for_root as Position;
             this.depth = 0;
             // this.graph_length_knower = { val: config.graph_minimum_length };
             this.graph_length_knower = { val: 41 };
@@ -77,7 +81,7 @@ export class Node {
             this.graph_length_knower.val = this.depth + 1;
         }
 
-        this.table = new Table();
+        this.position_info = new PositionInfo();
         this.searchmoves = [];
         this.__nice_move = null;
         this.destroyed = false;
@@ -86,20 +90,16 @@ export class Node {
 
     /**
      *
-     * @param s must be exactly a legal move, including having promotion char iff needed (e.g. e2e1q)
-     * @param force_new_node
+     * @param move must be exactly a legal move, including having promotion char iff needed (e.g. e2e1q)
      * @returns
      */
-    make_move(s: string, force_new_node?: boolean): Node {
-        if (!force_new_node) {
-            for (let child of this.children) {
-                if (child.move === s) {
-                    return child;
-                }
+    make_move(move: string): Node {
+        for (const child of this.children) {
+            if (child.move === move) {
+                return child;
             }
         }
-
-        return new Node(this, s, null);
+        return new Node(this, move, null);
     }
 
     history(): string[] {
@@ -132,10 +132,10 @@ export class Node {
 
     move_old_format() {
         let move = this.move;
-        if (move === "e1h1" && this.parent!.board.state[4][7] === "K") return "e1g1";
-        if (move === "e1a1" && this.parent!.board.state[4][7] === "K") return "e1c1";
-        if (move === "e8h8" && this.parent!.board.state[4][0] === "k") return "e8g8";
-        if (move === "e8a8" && this.parent!.board.state[4][0] === "k") return "e8c8";
+        if (move === "e1h1" && this.parent!.position.state[4][7] === "K") return "e1g1";
+        if (move === "e1a1" && this.parent!.position.state[4][7] === "K") return "e1c1";
+        if (move === "e8h8" && this.parent!.position.state[4][0] === "k") return "e8g8";
+        if (move === "e8a8" && this.parent!.position.state[4][0] === "k") return "e8c8";
         return move;
     }
 
@@ -159,7 +159,7 @@ export class Node {
         let node: Node | null = this.get_end();
 
         while (node) {
-            ret.push(node.table.get_graph_y());
+            ret.push(node.position_info.get_graph_y());
             node = node.parent;
         }
 
@@ -239,7 +239,7 @@ export class Node {
     is_triple_rep() {
         // Are there enough ancestors since the last pawn move or capture?
 
-        if (this.board.halfmove < 8) {
+        if (this.position.halfmove < 8) {
             return false;
         }
 
@@ -248,7 +248,7 @@ export class Node {
 
         while (ancestor.parent && ancestor.parent.parent) {
             ancestor = ancestor.parent.parent;
-            if (ancestor.board.compare(this.board)) {
+            if (ancestor.position.compare(this.position)) {
                 hits++;
                 if (hits >= 2) {
                     return true;
@@ -257,7 +257,7 @@ export class Node {
 
             // All further ancestors are the wrong side of a pawn move or capture?
 
-            if (ancestor.board.halfmove < 2) {
+            if (ancestor.position.halfmove < 2) {
                 return false;
             }
         }
@@ -273,7 +273,7 @@ export class Node {
         if (!this.move || !this.parent) {
             this.__nice_move = "??";
         } else {
-            this.__nice_move = this.parent.board.nice_string(this.move);
+            this.__nice_move = this.parent.position.nice_string(this.move);
         }
 
         return this.__nice_move;
@@ -292,7 +292,7 @@ export class Node {
 
         if (force_number_flag) need_number_string = true;
         if (!this.parent.parent) need_number_string = true;
-        if (this.parent.board.active === "w") need_number_string = true;
+        if (this.parent.position.active === "w") need_number_string = true;
         if (this.parent.children[0] !== this) need_number_string = true;
 
         // There are some other cases where we are supposed to have numbers but the logic
@@ -301,7 +301,7 @@ export class Node {
         let s = "";
 
         if (need_number_string) {
-            s += this.parent.board.next_number_string() + " ";
+            s += this.parent.position.next_number_string() + " ";
         }
 
         s += this.nice_move();
@@ -370,29 +370,29 @@ export class Node {
         // Returns "" if not a terminal position, otherwise returns the reason.
         // Also updates table.graph_y if needed.
 
-        if (typeof this.table.terminal === "string") {
-            return this.table.terminal;
+        if (typeof this.position_info.terminal === "string") {
+            return this.position_info.terminal;
         }
 
-        let board = this.board;
+        let board = this.position;
 
         if (board.no_moves()) {
             if (board.king_in_check()) {
-                this.table.set_terminal_info("Checkmate", board.active === "w" ? 0 : 1); // The PGN writer checks for this exact string! (Lame...)
+                this.position_info.set_terminal_info("Checkmate", board.active === "w" ? 0 : 1); // The PGN writer checks for this exact string! (Lame...)
             } else {
-                this.table.set_terminal_info("Stalemate", 0.5);
+                this.position_info.set_terminal_info("Stalemate", 0.5);
             }
         } else if (board.insufficient_material()) {
-            this.table.set_terminal_info("Insufficient Material", 0.5);
+            this.position_info.set_terminal_info("Insufficient Material", 0.5);
         } else if (board.halfmove >= 100) {
-            this.table.set_terminal_info("50 Move Rule", 0.5);
+            this.position_info.set_terminal_info("50 Move Rule", 0.5);
         } else if (this.is_triple_rep()) {
-            this.table.set_terminal_info("Triple Repetition", 0.5);
+            this.position_info.set_terminal_info("Triple Repetition", 0.5);
         } else {
-            this.table.set_terminal_info("", null);
+            this.position_info.set_terminal_info("", null);
         }
 
-        return this.table.terminal;
+        return this.position_info.terminal;
     }
 
     validate_searchmoves(arr: string[]) {
@@ -405,7 +405,7 @@ export class Node {
         let valid_list: string[] = [];
 
         for (let move of arr) {
-            if (this.board.illegal(move) === "") {
+            if (this.position.illegal(move) === "") {
                 valid_list.push(move);
             }
         }
@@ -434,10 +434,9 @@ export class Node {
 // in general I don't know, but we also take this opportunity to
 // clear nodes from the live_list.
 
-export function DestroyTree(node: Node): void {
+export function DestroyTree(node: Node): void | never {
     if (!node || node.destroyed) {
-        console.log("Warning: DestroyTree() called with invalid arg");
-        return;
+        throw new Error("Warning: DestroyTree() called with invalid arg");
     }
     __destroy_tree(node.get_root());
 }
@@ -449,14 +448,14 @@ function __destroy_tree(node: Node) {
         let child = node.children[0];
 
         node.parent = null;
-        node.board = null as unknown as Position;
+        node.position = null as unknown as Position;
         node.children = null as unknown as Node[];
         node.searchmoves = null as unknown as unknown[];
-        node.table = null as unknown as Table;
+        node.position_info = null as unknown as PositionInfo;
         node.graph_length_knower = null as unknown as { val: number };
         node.destroyed = true;
 
-        delete live_nodes[node.id.toString()];
+        delete node_from_id[node.id.toString()];
 
         node = child;
     }
@@ -466,14 +465,14 @@ function __destroy_tree(node: Node) {
     let children = node.children;
 
     node.parent = null;
-    node.board = null as unknown as Position;
+    node.position = null as unknown as Position;
     node.children = null as unknown as Node[];
     node.searchmoves = null as unknown as unknown[];
-    node.table = null as unknown as Table;
+    node.position_info = null as unknown as PositionInfo;
     node.graph_length_knower = null as unknown as { val: number };
     node.destroyed = true;
 
-    delete live_nodes[node.id.toString()];
+    delete node_from_id[node.id.toString()];
 
     for (let child of children) {
         __destroy_tree(child);
@@ -494,14 +493,14 @@ function __clean_tree(node: Node): void {
     // Non-recursive when possible...
 
     while (node.children.length === 1) {
-        node.table.clear();
+        node.position_info.clear();
         node.searchmoves = [];
         node = node.children[0];
     }
 
     // Recursive when necessary...
 
-    node.table.clear();
+    node.position_info.clear();
     node.searchmoves = [];
 
     for (let child of node.children) {
@@ -530,7 +529,7 @@ function __add_tree_to_book(node: Node, book: { key: bigint; move: string; weigh
     // Non-recursive when possible...
 
     while (node.children.length === 1) {
-        let key = KeyFromBoard(node.board) as bigint;
+        let key = KeyFromBoard(node.position) as bigint;
         let move = node.children[0].move as string;
 
         book.push({
@@ -550,7 +549,7 @@ function __add_tree_to_book(node: Node, book: { key: bigint; move: string; weigh
 
     // Recursive when necessary...
 
-    let key = KeyFromBoard(node.board) as bigint;
+    let key = KeyFromBoard(node.position) as bigint;
 
     for (let child of node.children) {
         book.push({

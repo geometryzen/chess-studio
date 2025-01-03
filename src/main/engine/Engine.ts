@@ -62,8 +62,8 @@ export async function example() {
     await engine.setoption("MultiPV", "4");
     await engine.isready();
     await engine.position("startpos", ["e2e4", "e7e5"]);
-    engine.info$.subscribe(function (info: Info) {});
-    engine.bestmove$.subscribe(function (bestmove: BestMove) {});
+    engine.info$.subscribe(function (info: Info) { });
+    engine.bestmove$.subscribe(function (bestmove: BestMove) { });
     engine.go({ depth: 4 });
     setTimeout(async () => {
         const bestmove = await engine.stop();
@@ -193,8 +193,8 @@ export class Engine {
      */
     async getBufferUntil(condition: (line: string) => boolean): Promise<string[]> {
         const lines: string[] = [];
-        let listener: (data: string) => void = function () {};
-        let reject_ref: (reason?: any) => void = function () {};
+        let listener: (data: string) => void = function () { };
+        let reject_ref: (reason?: any) => void = function () { };
         const p = new Promise<void>((resolve, reject) => {
             reject_ref = reject;
             let backlog = "";
@@ -245,7 +245,7 @@ export class Engine {
                 this.exe.stdin.write(`${command}${EOL}`);
             }
         }
-        // console.lg("<-", command, EOL);
+        // console.lg(command, EOL, "->", "stdin");
     }
 
     async hydrate(filePath: string): Promise<this> {
@@ -443,8 +443,6 @@ export class Engine {
      *
      */
     async stop(): Promise<BestMove> {
-        if (!this.emitter) throw new Error('cannot call "stop()": goInfinite() is not in progress');
-        //send the stop message & end goInfinite() listener
         this.write("stop");
         this.emitter.emit("stop", {});
         //same idea as go(), only we expect just bestmove line here

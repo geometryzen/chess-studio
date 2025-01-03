@@ -20,7 +20,6 @@ export const CHANNEL_ACTION_TREE_DELETE_OTHER_LINES = "action:tree:delete-other-
 export const CHANNEL_ACTION_ANALYSIS_GO = "action:analysis:go";
 export const CHANNEL_ACTION_ANALYSIS_HALT = "action:analysis:halt";
 
-export const CHANNEL_INVOKE_BAZZO = "invoke:bazzo";
 export const CHANNEL_INVOKE_ANALYSIS_GO = "invoke:analysis:go";
 export const CHANNEL_INVOKE_ANALYSIS_HALT = "invoke:analysis:halt";
 

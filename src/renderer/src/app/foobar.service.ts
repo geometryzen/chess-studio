@@ -51,7 +51,6 @@ declare global {
 declare global {
     interface Window {
         foobar: {
-            baz(name: string): Promise<number>;
             go(fen: string): Promise<void>;
             halt(): Promise<BestMove>;
             onGameClear(callback: () => void): void;
@@ -77,10 +76,6 @@ declare global {
 })
 export class FoobarService {
     constructor() {}
-
-    baz(name: string): Promise<number> {
-        return window.foobar.baz(name);
-    }
 
     go(fen: string): Promise<void> {
         return window.foobar.go(fen);

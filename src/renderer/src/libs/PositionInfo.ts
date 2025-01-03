@@ -57,15 +57,15 @@ function Sign(n: number): 0 | 1 | -1 {
     return 0;
 }
 
-export function SortedMoveInfo(node: Node): Info[] {
+export function sorted_primary_variations(node: Node): PrimaryVariationInfo[] {
     if (!node || node.destroyed) {
         return [];
     }
 
-    return SortedMoveInfoFromTable(node.table);
+    return SortedMoveInfoFromTable(node.position_info);
 }
 
-function SortedMoveInfoFromTable(table: Table): Info[] {
+function SortedMoveInfoFromTable(table: PositionInfo): PrimaryVariationInfo[] {
     // There are a lot of subtleties around sorting the moves...
     //
     // - We want to allow other engines than Lc0.
@@ -74,19 +74,19 @@ function SortedMoveInfoFromTable(table: Table): Info[] {
     // - We want to work with searchmoves, which is bound to leave stale info in the table.
     // - We can try and track the age of the data by various means, but these are fallible.
 
-    let info_list: Info[] = [];
+    const pvis: PrimaryVariationInfo[] = [];
     let latest_cycle = 0;
     let latest_subcycle = 0;
 
     for (let o of Object.values(table.moveinfo)) {
-        info_list.push(o);
+        pvis.push(o);
         if (o.cycle > latest_cycle) latest_cycle = o.cycle;
         if (o.subcycle > latest_subcycle) latest_subcycle = o.subcycle;
     }
 
     // It's important that the sort be transitive. I believe it is.
 
-    info_list.sort((a, b) => {
+    pvis.sort((a, b) => {
         const a_is_best = -1; // return -1 to sort a to the left
         const b_is_best = 1; // return 1 to sort a to the right
 
@@ -172,17 +172,18 @@ function SortedMoveInfoFromTable(table: Table): Info[] {
         return 0;
     });
 
-    return info_list;
+    return pvis;
 }
 
 /**
  * The table object stores info from the engine about a game-tree (PGN) node.
  */
-export class Table {
+export class PositionInfo {
     /**
-     * The key is the UCI move i.e. long algebraic notation.
+     * The key is the first move (in UCI i.e. long algebraic notation) in the prmary variation .
      */
-    moveinfo: Record<string, Info>;
+    moveinfo: Record<string, PrimaryVariationInfo>;
+    moveinfo_has_candidate_moves: boolean;
     version: number;
     nodes: number;
     nps: number;
@@ -192,7 +193,6 @@ export class Table {
     terminal: unknown;
     graph_y: number | null;
     graph_y_version: number;
-    already_autopopulated: boolean;
 
     constructor() {
         this.moveinfo = Object.create(null); // move --> info
@@ -205,7 +205,7 @@ export class Table {
         this.terminal = null; // null = unknown, "" = not terminal, "Non-empty string" = terminal reason
         this.graph_y = null; // Used by grapher only, value from White's POV between 0 and 1
         this.graph_y_version = 0; // Which version (above) was used to generate the graph_y value
-        this.already_autopopulated = false;
+        this.moveinfo_has_candidate_moves = false;
     }
 
     clear() {
@@ -219,7 +219,7 @@ export class Table {
         this.terminal = null; // null = unknown, "" = not terminal, "Non-empty string" = terminal reason
         this.graph_y = null; // Used by grapher only, value from White's POV between 0 and 1
         this.graph_y_version = 0; // Which version (above) was used to generate the graph_y value
-        this.already_autopopulated = false;
+        this.moveinfo_has_candidate_moves = false;
     }
 
     get_graph_y() {
@@ -253,12 +253,12 @@ export class Table {
         }
     }
 
-    autopopulate(node: Node): void {
+    ensure_candidate_moves(node: Node): void {
         if (!node) {
             throw "autopopulate() requires node argument";
         }
 
-        if (this.already_autopopulated) {
+        if (this.moveinfo_has_candidate_moves) {
             return;
         }
 
@@ -266,15 +266,15 @@ export class Table {
             return;
         }
 
-        const moves = node.board.movegen();
+        const moves = node.position.movegen();
 
         for (let move of moves) {
-            if (node.table.moveinfo[move] === undefined) {
-                node.table.moveinfo[move] = new Info(node.board, move);
+            if (node.position_info.moveinfo[move] === undefined) {
+                node.position_info.moveinfo[move] = new PrimaryVariationInfo(node.position, move);
             }
         }
 
-        this.already_autopopulated = true;
+        this.moveinfo_has_candidate_moves = true;
     }
 }
 
@@ -282,7 +282,7 @@ export class Table {
  * The info object stores info received from the engine about a move.
  * The actual updating of the object takes place in info.js and the ih.receive() method there.
  */
-export class Info {
+export class PrimaryVariationInfo {
     board: Position;
     cp: number;
     depth: number;
@@ -366,7 +366,7 @@ export class Info {
         this.nice_pv_cache = null;
     }
 
-    nice_pv() {
+    nice_pv(): string[] {
         // Human readable moves.
 
         if (this.nice_pv_cache) {
@@ -382,7 +382,7 @@ export class Info {
 
         let ret: string[] = [];
 
-        for (let move of this.pv) {
+        for (const move of this.pv) {
             // if (tmp_board.illegal(move)) break;		// Should be impossible as of 1.8.4: PVs are validated upon reception, and the only other
             // way they can get changed is by maybe_infer_info(), which hopefully is sound.
             ret.push(tmp_board.nice_string(move));

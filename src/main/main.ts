@@ -4,7 +4,7 @@ import { BestMove } from "engine/parseBestmove";
 import { Info } from "engine/parseInfo";
 import * as os from "os";
 import * as path from "path";
-import { CHANNEL_EVENT_ANALYSIS_MOVE_CANDIDATE, CHANNEL_EVENT_ANALYSIS_MOVE_SCORE, CHANNEL_INVOKE_ANALYSIS_GO, CHANNEL_INVOKE_ANALYSIS_HALT, CHANNEL_INVOKE_BAZZO } from "../shared/ipc-constants";
+import { CHANNEL_EVENT_ANALYSIS_MOVE_CANDIDATE, CHANNEL_EVENT_ANALYSIS_MOVE_SCORE, CHANNEL_INVOKE_ANALYSIS_GO, CHANNEL_INVOKE_ANALYSIS_HALT } from "../shared/ipc-constants";
 import { Controller } from "./controller";
 import { DtoSystemInfo } from "./dtosysteminfo";
 import { menu_build } from "./menu/menu";
@@ -41,11 +41,6 @@ async function createWindow() {
 
     const controller = new Controller(app);
 
-    ipcMain.handle(CHANNEL_INVOKE_BAZZO, (event, arg0, arg1, arg2) => {
-        console.log(`bazzo! ${arg0}`);
-        return 43;
-    });
-
     ipcMain.handle(CHANNEL_INVOKE_ANALYSIS_GO, async (event, fen: string, arg1, arg2) => {
         await controller.engine.isready();
         await controller.engine.position(fen, []);
@@ -58,18 +53,17 @@ async function createWindow() {
                     win.webContents.send(CHANNEL_EVENT_ANALYSIS_MOVE_CANDIDATE, info);
                 }
             }
-            console.log(JSON.stringify(info));
         });
         controller.engine.bestmove$.subscribe(function (bestmove: BestMove) {
-            console.log(JSON.stringify(bestmove));
+            // console.lg(`BESTMOVE: ${bestmove}`)
         });
-        console.log(`go! ${fen}`);
     });
 
     ipcMain.handle(CHANNEL_INVOKE_ANALYSIS_HALT, async (event, arg0, arg1, arg2) => {
-        const response: BestMove = await controller.engine.stop();
-        console.log(`halt! ${JSON.stringify(response)}`);
-        return response;
+        // console.lg("controller receiving instruction to stop the chess engine")
+        const bestmove: BestMove = await controller.engine.stop();
+        // console.lg(`bestmove => ${JSON.stringify(bestmove)}`);
+        return bestmove;
     });
 
     await controller.restart_engine();

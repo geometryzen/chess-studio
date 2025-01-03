@@ -970,7 +970,7 @@ function BookProbe(key, book: Buffer) {
 
         if (lowerbound > upperbound) {
 
-            console.log("BookProbe(): lowerbound > upperbound");
+            console.lg("BookProbe(): lowerbound > upperbound");
             break;
 
         } else {
@@ -1112,7 +1112,7 @@ function BookStressTest() {
         if (proberesults.length === 1) {
             successes++;
         } else {
-            console.log("Missed:", mid_o.key);
+            console.lg("Missed:", mid_o.key);
         }
     }
 

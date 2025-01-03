@@ -65,12 +65,10 @@ export const load = (): [string | null, EngineConfig] => {
             try {
                 Object.assign(cfg, JSON.parse(raw));
             } catch (err) {
-                console.log(`Unable to parse contents of ${filepath}. Cause: ${err}`); // alert() might not be available.
                 Object.assign(cfg, JSON.parse(debork_json(raw)));
             }
         }
     } catch (err) {
-        console.log(`Unable to read Engine config from ${filepath}. Cause: ${err}`); // alert() might not be available.
         err_to_return = `${err}`;
     }
 
@@ -88,11 +86,7 @@ export const save = (cfg: EngineConfig) => {
     let blank = cfx[""];
     delete cfx[""];
 
-    try {
-        writeFileSync(filepath, JSON.stringify(cfg, null, "\t"));
-    } catch (err) {
-        console.log(`Unable to save Engine config to ${filepath}. Cause: ${err}`); // alert() might not be available.
-    }
+    writeFileSync(filepath, JSON.stringify(cfg, null, "\t"));
 
     cfx[""] = blank;
 };

@@ -21,7 +21,6 @@ export function alert(...args: unknown[]) {
     let msg = args.length < 2 ? args[0] : args[1];
 
     if (alerts_open >= 3) {
-        console.log(msg);
         return;
     }
 

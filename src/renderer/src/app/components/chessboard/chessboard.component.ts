@@ -1,12 +1,11 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit } from "@angular/core";
+import { Component, CUSTOM_ELEMENTS_SCHEMA, OnDestroy, OnInit } from "@angular/core";
 import "chessboard-element";
 import { ChessBoardElement, PositionObject } from "chessboard-element";
 import { fromEvent, Observable } from "rxjs";
-import { BestMove, FoobarService, MoveCandidate, MoveScore } from "src/app/foobar.service";
-// Usage of chess.js is temporary until using our own tree-based implementation.
-// The goal will be to achieve at least parity of functionality.
-// This should be proved using tests.
+import { BestMove, FoobarService, MoveScore } from "src/app/foobar.service";
+import { Node } from "src/libs/Node";
 import { point_from_s, Square } from "src/libs/Position";
+import { sorted_primary_variations } from "src/libs/PositionInfo";
 import { Tree } from "src/libs/Tree";
 
 interface LegalMove {
@@ -94,17 +93,21 @@ interface MoveEndEvent extends Event {
     schemas: [CUSTOM_ELEMENTS_SCHEMA],
     standalone: true
 })
-export class ChessboardComponent implements OnInit {
-    // @ViewChild('board') board: ComponentRef<ChessBoardElement>;
-    readonly tree = new Tree(); // This will become the new game: Chess?
-    // readonly game = new Chess();
+export class ChessboardComponent implements OnInit, OnDestroy {
+    readonly tree = new Tree();
     boardUI!: ChessBoardElement;
+    /**
+     * The node that the Chess engine is currently analyzing.
+     * This is used to ensure that the engine analysis is applied to the correct node,
+     * and to ensure that the engine is analyzing the current node.
+     */
+    engineNode: Node | null = null;
     change$!: Observable<ChangeEvent>;
     dragStart$!: Observable<DragStartEvent>;
     status: string = "";
     fen: string = "";
     pgn: string = "";
-    useAnimation: boolean = true;
+    useAnimation: boolean = false;
     is_setup_mode: boolean = false;
     in_960_mode: boolean = false;
     constructor(private controller: FoobarService) {
@@ -232,22 +235,14 @@ export class ChessboardComponent implements OnInit {
             // console.lg("New position: " + objToFen(event.detail.newPosition));
         });
         this.controller.onNewGameClassic(() => {
-            try {
-                this.tree.reset();
-                this.boardUI.setPosition(this.tree.fen(), this.useAnimation);
-                this.exitSetupMode();
-            } catch (e) {
-                console.log(`${e}`);
-            }
+            this.tree.reset();
+            this.boardUI.setPosition(this.tree.fen(), this.useAnimation);
+            this.exitSetupMode();
         });
         this.controller.onGameClear(() => {
-            try {
-                this.tree.clear();
-                this.boardUI.clear(this.useAnimation);
-                this.enterSetupMode();
-            } catch (e) {
-                console.log(`${e}`);
-            }
+            this.tree.clear();
+            this.boardUI.clear(this.useAnimation);
+            this.enterSetupMode();
         });
         this.controller.onGameSetup(() => {
             this.enterSetupMode();
@@ -270,33 +265,82 @@ export class ChessboardComponent implements OnInit {
         this.controller.onBoardFlip(() => {
             this.boardUI.flip();
         });
-        this.tree.version$.subscribe(() => {
-            this.boardUI.setPosition(this.tree.fen());
+        this.tree.version$.subscribe(async () => {
+            try {
+                // console.lg(`version: ${this.tree.version$.getValue()}`);
+                this.boardUI.setPosition(this.tree.fen());
+                if (this.engineNode) {
+                    // Any further events will be discarded.
+                    this.engineNode = null;
+                    // Wait for the engine to stop.
+                    const stopinfo: BestMove = await this.controller.halt();
+                    // TODO: We could apply this knowledge to the previous node...
+                    stopinfo.bestmove
+                    stopinfo.ponder;
+                    for (const moveScore of stopinfo.info) {
+                        moveScore.pv
+                    }
+                    // console.lg(`bestmove => ${JSON.stringify(stopinfo)}`);
+                    // Restart analysis for the new position.
+                    this.engineNode = this.tree.node;
+                    const fen = this.engineNode.position.fen(true);
+                    await this.controller.go(fen);
+                }
+                else {
+                    // console.lg("There is no search in progress");
+                }
+            }
+            catch (e) {
+                console.log(`${e}`);
+            }
         });
         this.controller.onAnalysisGo(async () => {
-            // It matters
-            const fen = this.tree.fen(true);
-            const retval = await this.controller.go(fen);
-            console.log(`go => ${retval}`);
+            this.engineNode = this.tree.node;
+            const fen = this.engineNode.position.fen(true);
+            await this.controller.go(fen);
         });
         this.controller.onAnalysisHalt(async () => {
             const retval: BestMove = await this.controller.halt();
-            console.log(`halt => ${JSON.stringify(retval)}`);
+            this.engineNode = null;
+            // console.lg(`halt => ${JSON.stringify(retval)}`);
         });
         this.controller.onAnalysisMoveScore((moveScore: MoveScore) => {
-            console.log(`moveScore => ${JSON.stringify(moveScore)}`);
-            const moves: string[] = moveScore.pv.split(" ");
-            if (moves.length > 0) {
-                const move = this.tree.node.board.c960_castling_converter(moves[0]);
-                console.log(`move => ${JSON.stringify(move)}`);
-                const known = this.tree.node.table.moveinfo[move];
-                console.log(`known => ${JSON.stringify(known)}`);
+            if (this.engineNode) {
+                const moves: string[] = moveScore.pv.split(" ");
+                if (moves.length > 0) {
+                    const move = this.engineNode.position.c960_castling_converter(moves[0]);
+                    // console.lg(`move => ${JSON.stringify(move)}`);
+                    const posinfo = this.engineNode.position_info;
+                    posinfo.nodes = moveScore.nodes;
+                    posinfo.nps = moveScore.nps;
+                    posinfo.tbhits = moveScore.tbhits;
+                    posinfo.time = moveScore.time;
+
+                    const moveinfo = posinfo.moveinfo[move];
+                    moveinfo.depth = moveScore.depth;
+                    moveinfo.multipv = moveScore.multipv;
+                    moveinfo.pv = moves;
+                    moveinfo.cp = moveScore.score.value;
+                    moveinfo.seldepth = moveScore.seldepth;
+                    // console.log(`moveinfo[${move}] => ${JSON.stringify(moveinfo)}`);
+                }
+                // Having just updated the position information, we can sort it to determine the best move ordering.
+                const pvis = sorted_primary_variations(this.engineNode).map((pvi) => {
+                    return { move: pvi.move, cp: pvi.cp, line: pvi.pv }
+                });
+                // console.lg(JSON.stringify(pvis, null, 2));
             }
         });
-        this.controller.onAnalysisMoveCandidate((moveCandidate: MoveCandidate) => {
-            console.log(`moveCandidate => ${JSON.stringify(moveCandidate)}`);
-        });
+
+        // this.controller.onAnalysisMoveCandidate((moveCandidate: MoveCandidate) => {
+        //     console.lg(`moveCandidate => ${JSON.stringify(moveCandidate)}`);
+        // });
     }
+
+    ngOnDestroy(): void {
+        // console.lg("ChessboardComponent.onDestroy()");
+    }
+
     enterSetupMode() {
         this.is_setup_mode = true;
         this.boardUI.sparePieces = true;
@@ -362,7 +406,7 @@ export class ChessboardComponent implements OnInit {
             throw new Error();
         }
 
-        const board = this.tree.node.board;
+        const board = this.tree.node.position;
         const source = point_from_s(s.slice(0, 2));
         const target = point_from_s(s.slice(2, 4));
         const promotion = s.slice(4, 1);
@@ -386,7 +430,7 @@ export class ChessboardComponent implements OnInit {
             if ((board.piece(source) === "P" && source.y === 1) || (board.piece(source) === "p" && source.y === 6)) {
                 const illegal_reason = board.illegal(s + "q");
                 if (illegal_reason) {
-                    console.log(`hub.move(${s}) - ${illegal_reason}`);
+                    // console.lg(`move(${s}) - ${illegal_reason}`);
                 } else {
                     this.show_promotiontable(s);
                 }
@@ -398,105 +442,13 @@ export class ChessboardComponent implements OnInit {
 
         const illegal_reason = board.illegal(s);
         if (illegal_reason) {
-            console.log(`hub.move(${s}) - ${illegal_reason}`);
+            // console.lg(`move(${s}) - ${illegal_reason}`);
             return null;
         }
 
-        this.controller.halt()
         this.tree.make_move(s);
-        this.position_changed();
+
         return { from: source.s, to: target.s };
-    }
-
-    position_changed(new_game_flag?: boolean, avoid_confusion?: boolean) {
-        console.log("position_changed");
-        // Called right after this.tree.node is changed, meaning we are now drawing a different position.
-
-        this.escape();
-
-        // this.hoverdraw_div = -1;
-        // this.position_change_time = performance.now();
-        // fenbox.value = this.tree.node.board.fen(true);
-
-        if (new_game_flag) {
-            // this.node_to_clean = null;
-            // this.leela_lock_node = null;
-            // this.set_behaviour("halt");					// Will cause "stop" to be sent.
-            // if (!config.suppress_ucinewgame) {
-            //    this.engine.send_ucinewgame();			// Must happen after "stop" is sent.
-            //}
-            //this.send_title();
-            //if (this.engine.ever_received_uciok && !this.engine.in_960_mode() && this.tree.node.board.normalchess === false) {
-            //alert(messages.c960_warning);
-            //}
-        }
-
-        if (this.tree.node.table.already_autopopulated === false) {
-            this.tree.node.table.autopopulate(this.tree.node);
-        }
-
-        // When entering a position, clear its searchmoves, unless it's the analysis_locked node.
-
-        //if (this.leela_lock_node !== this.tree.node) {
-        //    this.tree.node.searchmoves = [];
-        //}
-
-        // Caller can tell us the change would cause user confusion for some modes...
-
-        //if (avoid_confusion) {
-        //    if (["play_white", "play_black", "self_play", "auto_analysis", "back_analysis"].includes(config.behaviour)) {
-        //        this.set_behaviour("halt");
-        //    }
-        //}
-
-        // this.maybe_infer_info();						// Before node_exit_cleanup() so that previous ghost info is available when moving forwards.
-        // this.behave("position");
-        // this.draw();
-
-        // this.node_exit_cleanup();						// This feels like the right time to do this.
-        // this.node_to_clean = this.tree.node;
-
-        // this.looker.add_to_queue(this.tree.node.board);
-
-    }
-    set_behaviour(s: "halt") {
-        /*
-        if (!this.engine.ever_received_uciok || !this.engine.ever_received_readyok) {
-            s = "halt";
-        }
-
-        // Don't do anything if behaviour is already correct. But
-        // "halt" always triggers a behave() call for safety reasons.
-
-        if (s === config.behaviour) {
-            switch (s) {
-                case "halt":
-                    break;					// i.e. do NOT immediately return
-                case "analysis_locked":
-                    if (this.leela_lock_node !== this.tree.node) {
-                        break;				// i.e. do NOT immediately return
-                    }
-                    return;
-                case "analysis_free":
-                    if (!this.engine.search_desired.node) {
-                        break;				// i.e. do NOT immediately return
-                    }
-                    return;
-                default:
-                    return;
-            }
-        }
-
-        this.set_behaviour_direct(s);
-        this.behave("behaviour");
-        */
-    }
-
-    set_behaviour_direct(s: string) {
-        /*
-        this.leela_lock_node = (s === "analysis_locked") ? this.tree.node : null;
-        config.behaviour = s;
-        */
     }
 
     show_promotiontable(partial_move: string) {
@@ -517,19 +469,6 @@ export class ChessboardComponent implements OnInit {
     hide_promotiontable() {
         /*
         promotiontable.style.display = "none";
-        */
-    }
-    escape() {
-        // Set things into a clean state.
-        /*
-        this.hide_fullbox();
-        this.hide_promotiontable();
-        if (this.active_square) {
-            this.set_active_square(null);
-            if (config.click_spotlight) {
-                this.draw_canvas_arrows();
-            }
-        }
         */
     }
 }
