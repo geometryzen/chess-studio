@@ -17,3 +17,12 @@ export const CHANNEL_ACTION_TREE_DELETE_NODE = "action:tree:delete-node";
 export const CHANNEL_ACTION_TREE_DELETE_CHILDREN = "action:tree:delete-children";
 export const CHANNEL_ACTION_TREE_DELETE_SIBLINGS = "action:tree:delete-siblings";
 export const CHANNEL_ACTION_TREE_DELETE_OTHER_LINES = "action:tree:delete-other-lines";
+export const CHANNEL_ACTION_ANALYSIS_GO = "action:analysis:go";
+export const CHANNEL_ACTION_ANALYSIS_HALT = "action:analysis:halt";
+
+export const CHANNEL_INVOKE_BAZZO = "invoke:bazzo";
+export const CHANNEL_INVOKE_ANALYSIS_GO = "invoke:analysis:go";
+export const CHANNEL_INVOKE_ANALYSIS_HALT = "invoke:analysis:halt";
+
+export const CHANNEL_EVENT_ANALYSIS_MOVE_SCORE = "event:analysis:move-score";
+export const CHANNEL_EVENT_ANALYSIS_MOVE_CANDIDATE = "event:analysis:move-candidate";

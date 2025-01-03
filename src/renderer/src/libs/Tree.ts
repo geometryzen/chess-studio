@@ -19,7 +19,6 @@ export class Tree {
      * @param fen The FEN for the position. Must be a valid position.
      */
     load(fen: string): void {
-
         const board = LoadFEN(fen);
 
         this.root = new Node(null, null, board);
@@ -63,7 +62,7 @@ export class Tree {
         this.node = this.root;
         this.node.table.autopopulate(this.node);
     }
-    turn(): 'w' | 'b' {
+    turn(): "w" | "b" {
         return this.node.board.active;
     }
     isDrawByFiftyMoves(): boolean {
@@ -94,15 +93,15 @@ export class Tree {
     isThreefoldRepetition(): boolean {
         return this.node.is_triple_rep();
     }
-    fen(): string {
-        return this.node.board.fen();
+    fen(friendly_flag?: boolean): string {
+        return this.node.board.fen(friendly_flag);
     }
     pgn(): string {
         return make_pgn_string(this.node);
     }
     reset(): void {
         this.root = NewRoot();
-        this.node = this.root
+        this.node = this.root;
         this.node.table.autopopulate(this.node);
     }
     private increment_version() {
@@ -119,7 +118,6 @@ export class Tree {
         return true;
     }
     set_node(node: Node | null): boolean {
-
         // Note that we may call dom_easy_highlight_change() so don't
         // rely on this to draw any nodes that never got drawn.
 
@@ -130,7 +128,8 @@ export class Tree {
         let original_node = this.node;
         this.node = node;
 
-        if (original_node.is_same_line(this.node)) {		// This test is super-fast if one node is a parent of the other
+        if (original_node.is_same_line(this.node)) {
+            // This test is super-fast if one node is a parent of the other
             this.increment_version();
         } else {
             this.increment_version();
@@ -139,11 +138,11 @@ export class Tree {
         return true;
     }
     prev(): boolean {
-        return this.set_node(this.node.parent);				// OK if undefined
+        return this.set_node(this.node.parent); // OK if undefined
     }
 
     next(): boolean {
-        return this.set_node(this.node.children[0]);		// OK if undefined
+        return this.set_node(this.node.children[0]); // OK if undefined
     }
     goto_root(): boolean {
         return this.set_node(this.root);
@@ -165,7 +164,7 @@ export class Tree {
                 return this.set_node(this.node.parent.children[i - 1]);
             }
         }
-        return false;		// Can't get here.
+        return false; // Can't get here.
     }
 
     next_sibling(): boolean {
@@ -180,7 +179,7 @@ export class Tree {
                 return this.set_node(this.node.parent.children[i + 1]);
             }
         }
-        return false;		// Can't get here.
+        return false; // Can't get here.
     }
     return_to_main_line(): boolean {
         let node = this.node.return_to_main_line_helper();
@@ -211,22 +210,21 @@ export class Tree {
      * @returns true (always)
      */
     make_move(s: string): true {
-
         // s must be exactly a legal move, including having promotion char iff needed (e.g. e2e1q)
 
         let next_node_id__initial = next_node_id;
         this.node = this.node.make_move(s);
 
-        if (next_node_id !== next_node_id__initial) {		// NewNode() was called
+        if (next_node_id !== next_node_id__initial) {
+            // NewNode() was called
             this.tree_version++;
         }
 
-        this.increment_version();			// Could potentially call something else here.
+        this.increment_version(); // Could potentially call something else here.
         return true;
     }
 
     make_move_sequence(moves: string[], set_this_node = true): boolean {
-
         if (Array.isArray(moves) === false || moves.length === 0) {
             return false;
         }
@@ -235,14 +233,15 @@ export class Tree {
 
         let node = this.node;
         for (let s of moves) {
-            node = node.make_move(s);		// Calling the node's make_move() method, not handler's
+            node = node.make_move(s); // Calling the node's make_move() method, not handler's
         }
 
         if (set_this_node) {
             this.node = node;
         }
 
-        if (next_node_id !== next_node_id__initial) {		// NewNode() was called
+        if (next_node_id !== next_node_id__initial) {
+            // NewNode() was called
             this.tree_version++;
         }
 
@@ -258,7 +257,6 @@ export class Tree {
     // The following methods don't ever change this.node - so the caller has no action to take. No return value.
 
     promote_to_main_line() {
-
         let node = this.node;
         let changed = false;
 
@@ -283,7 +281,6 @@ export class Tree {
     }
 
     promote() {
-
         let node = this.node;
         let changed = false;
 
@@ -298,7 +295,7 @@ export class Tree {
                         break;
                     }
                 }
-                break;		// 1 tree change only
+                break; // 1 tree change only
             }
             node = node.parent;
         }
@@ -310,7 +307,6 @@ export class Tree {
     }
 
     delete_other_lines() {
-
         this.promote_to_main_line();
 
         let changed = false;
@@ -326,12 +322,11 @@ export class Tree {
 
         if (changed) {
             this.tree_version++;
-            this.increment_version();		// This may be the 2nd draw since promote_to_main_line() may have drawn. Bah.
+            this.increment_version(); // This may be the 2nd draw since promote_to_main_line() may have drawn. Bah.
         }
     }
 
     delete_children() {
-
         if (this.node.children.length > 0) {
             for (let child of this.node.children) {
                 child.detach();
@@ -342,7 +337,6 @@ export class Tree {
     }
 
     delete_siblings() {
-
         let changed = false;
 
         if (this.node.parent) {
@@ -359,5 +353,4 @@ export class Tree {
             this.increment_version();
         }
     }
-
 }

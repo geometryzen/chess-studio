@@ -33,15 +33,70 @@ function algebraic_from_coords(x: number, y: number): Square {
 }
 
 export type Square =
-    'a8' | 'b8' | 'c8' | 'd8' | 'e8' | 'f8' | 'g8' | 'h8' |
-    'a7' | 'b7' | 'c7' | 'd7' | 'e7' | 'f7' | 'g7' | 'h7' |
-    'a6' | 'b6' | 'c6' | 'd6' | 'e6' | 'f6' | 'g6' | 'h6' |
-    'a5' | 'b5' | 'c5' | 'd5' | 'e5' | 'f5' | 'g5' | 'h5' |
-    'a4' | 'b4' | 'c4' | 'd4' | 'e4' | 'f4' | 'g4' | 'h4' |
-    'a3' | 'b3' | 'c3' | 'd3' | 'e3' | 'f3' | 'g3' | 'h3' |
-    'a2' | 'b2' | 'c2' | 'd2' | 'e2' | 'f2' | 'g2' | 'h2' |
-    'a1' | 'b1' | 'c1' | 'd1' | 'e1' | 'f1' | 'g1' | 'h1'
-
+    | "a8"
+    | "b8"
+    | "c8"
+    | "d8"
+    | "e8"
+    | "f8"
+    | "g8"
+    | "h8"
+    | "a7"
+    | "b7"
+    | "c7"
+    | "d7"
+    | "e7"
+    | "f7"
+    | "g7"
+    | "h7"
+    | "a6"
+    | "b6"
+    | "c6"
+    | "d6"
+    | "e6"
+    | "f6"
+    | "g6"
+    | "h6"
+    | "a5"
+    | "b5"
+    | "c5"
+    | "d5"
+    | "e5"
+    | "f5"
+    | "g5"
+    | "h5"
+    | "a4"
+    | "b4"
+    | "c4"
+    | "d4"
+    | "e4"
+    | "f4"
+    | "g4"
+    | "h4"
+    | "a3"
+    | "b3"
+    | "c3"
+    | "d3"
+    | "e3"
+    | "f3"
+    | "g3"
+    | "h3"
+    | "a2"
+    | "b2"
+    | "c2"
+    | "d2"
+    | "e2"
+    | "f2"
+    | "g2"
+    | "h2"
+    | "a1"
+    | "b1"
+    | "c1"
+    | "d1"
+    | "e1"
+    | "f1"
+    | "g1"
+    | "h1";
 
 export interface Point {
     x: number;
@@ -434,23 +489,23 @@ export class Position {
         }
 
         if (this.active === "w" && this.is_white(point_from_xy(x1, y1)) === false) {
-            return "wrong colour source";
+            return "wrong color source";
         }
 
         if (this.active === "b" && this.is_black(point_from_xy(x1, y1)) === false) {
-            return "wrong colour source";
+            return "wrong color source";
         }
 
-        // Colours must not be the same, except for castling.
+        // Colors must not be the same, except for castling.
         // Note that king-onto-rook is the only valid castling move...
 
-        if (this.same_colour(point_from_xy(x1, y1), point_from_xy(x2, y2))) {
+        if (this.same_color(point_from_xy(x1, y1), point_from_xy(x2, y2))) {
             if (this.state[x1][y1] === "K" && this.state[x2][y2] === "R") {
                 return this.illegal_castling(x1, y1, x2, y2);
             } else if (this.state[x1][y1] === "k" && this.state[x2][y2] === "r") {
                 return this.illegal_castling(x1, y1, x2, y2);
             } else {
-                return "source and destination have same colour";
+                return "source and destination have same color";
             }
         }
 
@@ -583,19 +638,19 @@ export class Position {
     }
 
     illegal_castling(x1: number, y1: number, x2: number, y2: number) {
-        // We can assume a king is on [x1, y1] and a same-colour rook is on [x2, y2]
+        // We can assume a king is on [x1, y1] and a same-color rook is on [x2, y2]
 
         if (y1 !== y2) {
             return "cannot castle vertically";
         }
 
-        let colour = this.colour(point_from_xy(x1, y1));
+        let color = this.color(point_from_xy(x1, y1));
 
-        if (colour === "w" && y1 !== 7) {
+        if (color === "w" && y1 !== 7) {
             return "cannot castle off the back rank";
         }
 
-        if (colour === "b" && y1 !== 0) {
+        if (color === "b" && y1 !== 0) {
             return "cannot castle off the back rank";
         }
 
@@ -603,7 +658,7 @@ export class Position {
 
         let required_ch;
 
-        if (colour === "w") {
+        if (color === "w") {
             required_ch = assert_point(point_from_xy(x2, y2)).s[0].toUpperCase();
         } else {
             required_ch = assert_point(point_from_xy(x2, y2)).s[0];
@@ -683,12 +738,12 @@ export class Position {
         // But this is slow, do not use when king location is known - just call attacked() instead.
 
         let kch = this.active === "w" ? "k" : "K"; // i.e. the INACTIVE king
-        let opp_colour: "w" | "b" = this.active === "w" ? "b" : "w";
+        let opp_color: "w" | "b" = this.active === "w" ? "b" : "w";
 
         for (let x = 0; x < 8; x++) {
             for (let y = 0; y < 8; y++) {
                 if (this.state[x][y] === kch) {
-                    return this.attacked(point_from_xy(x, y), opp_colour);
+                    return this.attacked(point_from_xy(x, y), opp_color);
                 }
             }
         }
@@ -749,9 +804,9 @@ export class Position {
         }
     }
 
-    attacked(target: Readonly<Point> | null, my_colour: "w" | "b" | "") {
-        if (!my_colour) {
-            throw "attacked(): no colour given";
+    attacked(target: Readonly<Point> | null, my_color: "w" | "b" | "") {
+        if (!my_color) {
+            throw "attacked(): no color given";
         }
 
         if (!target) {
@@ -765,7 +820,7 @@ export class Position {
             for (let step_y = -1; step_y <= 1; step_y++) {
                 if (step_x === 0 && step_y === 0) continue;
 
-                if (this.line_attack(target, step_x as -1 | 0 | 1, step_y as -1 | 0 | 1, my_colour)) {
+                if (this.line_attack(target, step_x as -1 | 0 | 1, step_y as -1 | 0 | 1, my_color)) {
                     return true;
                 }
             }
@@ -789,7 +844,7 @@ export class Position {
             if (x < 0 || x > 7 || y < 0 || y > 7) continue;
 
             if (["N", "n"].includes(this.state[x][y])) {
-                if (this.colour(point_from_xy(x, y)) === my_colour) continue;
+                if (this.color(point_from_xy(x, y)) === my_color) continue;
                 return true;
             }
         }
@@ -797,11 +852,11 @@ export class Position {
         return false;
     }
 
-    line_attack(target: Readonly<Point>, step_x: -1 | 0 | 1, step_y: -1 | 0 | 1, my_colour: "w" | "b"): boolean {
+    line_attack(target: Readonly<Point>, step_x: -1 | 0 | 1, step_y: -1 | 0 | 1, my_color: "w" | "b"): boolean {
         // Is the target square under attack via the line specified by step_x and step_y (which are both -1, 0, or 1) ?
 
-        if (!my_colour) {
-            throw "line_attack(): no colour given";
+        if (!my_color) {
+            throw "line_attack(): no color given";
         }
 
         if (!target) {
@@ -839,7 +894,7 @@ export class Position {
 
             // So there's something here. Must return now.
 
-            if (this.colour(point_from_xy(x, y)) === my_colour) {
+            if (this.color(point_from_xy(x, y)) === my_color) {
                 return false;
             }
 
@@ -877,7 +932,7 @@ export class Position {
     }
 
     find(piece: string, startx?: number, starty?: number, endx?: number, endy?: number) {
-        // Find all pieces of the specified type (colour-specific).
+        // Find all pieces of the specified type (color-specific).
         // Search range is INCLUSIVE. Result returned as a list of points.
         // You can call this function with just a piece to search the whole board.
 
@@ -1047,7 +1102,7 @@ export class Position {
 
         let piece = s[0];
 
-        // We care about the colour of the piece, so make black pieces lowercase...
+        // We care about the color of the piece, so make black pieces lowercase...
 
         if (this.active === "b") {
             piece = piece.toLowerCase();
@@ -1148,7 +1203,7 @@ export class Position {
         return this.piece(point) === "";
     }
 
-    colour(point: Readonly<Point> | null): "w" | "b" | "" {
+    color(point: Readonly<Point> | null): "w" | "b" | "" {
         let piece = this.piece(point);
         if (piece === "") {
             return "";
@@ -1159,18 +1214,23 @@ export class Position {
         return "b";
     }
 
-    same_colour(point1: Readonly<Point> | null, point2: Readonly<Point> | null) {
-        return this.colour(point1) === this.colour(point2);
+    same_color(point1: Readonly<Point> | null, point2: Readonly<Point> | null) {
+        return this.color(point1) === this.color(point2);
     }
 
+    /**
+     * Generates the permissable moves in long algebraic notation.
+     * @param one_only
+     * @returns
+     */
     movegen(one_only = false): string[] {
-        let moves: string[] = [];
+        const moves: string[] = [];
 
         for (let x = 0; x < 8; x++) {
             for (let y = 0; y < 8; y++) {
                 let source = assert_point(point_from_xy(x, y));
 
-                if (this.colour(source) !== this.active) {
+                if (this.color(source) !== this.active) {
                     continue;
                 }
 
@@ -1194,9 +1254,9 @@ export class Position {
                             }
 
                             let dest = point_from_xy(x2, y2);
-                            let dest_colour = this.colour(dest);
+                            let dest_color = this.color(dest);
 
-                            if (dest_colour === this.active) {
+                            if (dest_color === this.active) {
                                 // No move further along the slider will be legal.
                                 break;
                             }
@@ -1222,7 +1282,7 @@ export class Position {
                                 }
                             }
 
-                            if (dest_colour !== "") {
+                            if (dest_color !== "") {
                                 // No move further along the slider will be legal.
                                 break;
                             }
@@ -1314,7 +1374,7 @@ export class Position {
         let opponent_king_char = this.active === "w" ? "k" : "K";
         let opponent_king_square = this.find(opponent_king_char)[0]; // Might be undefined on corrupt board...
 
-        if (opponent_king_square && next_board.attacked(opponent_king_square, next_board.colour(opponent_king_square))) {
+        if (opponent_king_square && next_board.attacked(opponent_king_square, next_board.color(opponent_king_square))) {
             if (next_board.no_moves()) {
                 check = "#";
             } else {
@@ -1324,7 +1384,7 @@ export class Position {
 
         if (["K", "k", "Q", "q", "R", "r", "B", "b", "N", "n"].includes(piece)) {
             if (["K", "k"].includes(piece)) {
-                if (this.colour(dest) === this.colour(source)) {
+                if (this.color(dest) === this.color(source)) {
                     if (dest.x > source.x) {
                         return `O-O${check}`;
                     } else {

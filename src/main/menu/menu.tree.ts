@@ -1,5 +1,19 @@
 import { BrowserWindow, MenuItemConstructorOptions } from "electron";
-import { CHANNEL_ACTION_TREE_DELETE_CHILDREN, CHANNEL_ACTION_TREE_DELETE_NODE, CHANNEL_ACTION_TREE_DELETE_OTHER_LINES, CHANNEL_ACTION_TREE_DELETE_SIBLINGS, CHANNEL_ACTION_TREE_END, CHANNEL_ACTION_TREE_NEXT, CHANNEL_ACTION_TREE_NEXT_SIBLING, CHANNEL_ACTION_TREE_PREVIOUS, CHANNEL_ACTION_TREE_PREVIOUS_SIBLING, CHANNEL_ACTION_TREE_PROMOTE_LINE_BY_ONE_LEVEL, CHANNEL_ACTION_TREE_PROMOTE_LINE_TO_MAIN_LINE, CHANNEL_ACTION_TREE_RETURN_TO_MAIN_LINE, CHANNEL_ACTION_TREE_ROOT } from "../../shared/ipc-constants";
+import {
+    CHANNEL_ACTION_TREE_DELETE_CHILDREN,
+    CHANNEL_ACTION_TREE_DELETE_NODE,
+    CHANNEL_ACTION_TREE_DELETE_OTHER_LINES,
+    CHANNEL_ACTION_TREE_DELETE_SIBLINGS,
+    CHANNEL_ACTION_TREE_END,
+    CHANNEL_ACTION_TREE_NEXT,
+    CHANNEL_ACTION_TREE_NEXT_SIBLING,
+    CHANNEL_ACTION_TREE_PREVIOUS,
+    CHANNEL_ACTION_TREE_PREVIOUS_SIBLING,
+    CHANNEL_ACTION_TREE_PROMOTE_LINE_BY_ONE_LEVEL,
+    CHANNEL_ACTION_TREE_PROMOTE_LINE_TO_MAIN_LINE,
+    CHANNEL_ACTION_TREE_RETURN_TO_MAIN_LINE,
+    CHANNEL_ACTION_TREE_ROOT
+} from "../../shared/ipc-constants";
 
 export function menu_tree(win: BrowserWindow): MenuItemConstructorOptions {
     const items: MenuItemConstructorOptions = {
@@ -26,7 +40,7 @@ export function menu_tree(win: BrowserWindow): MenuItemConstructorOptions {
             {
                 type: "separator"
             },
-            menu_item_tree_delete_other_lines(win),
+            menu_item_tree_delete_other_lines(win)
         ]
     };
     return items;

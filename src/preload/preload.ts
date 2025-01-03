@@ -4,7 +4,25 @@
 // This script exposes specific Electron APIs to the Angular window.
 
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
-import { CHANNEL_ACTION_BOARD_FLIP, CHANNEL_ACTION_GAME_CLEAR, CHANNEL_ACTION_GAME_ENTER_MODE_SETUP, CHANNEL_ACTION_GAME_EXIT_MODE_SETUP, CHANNEL_ACTION_GAME_NEW, CHANNEL_ACTION_TREE_END, CHANNEL_ACTION_TREE_NEXT, CHANNEL_ACTION_TREE_PREVIOUS, CHANNEL_ACTION_TREE_ROOT, CHANNEL_ENGINE_CHANGED } from "../shared/ipc-constants";
+import {
+    CHANNEL_ACTION_ANALYSIS_GO,
+    CHANNEL_ACTION_ANALYSIS_HALT,
+    CHANNEL_ACTION_BOARD_FLIP,
+    CHANNEL_ACTION_GAME_CLEAR,
+    CHANNEL_ACTION_GAME_ENTER_MODE_SETUP,
+    CHANNEL_ACTION_GAME_EXIT_MODE_SETUP,
+    CHANNEL_ACTION_GAME_NEW,
+    CHANNEL_ACTION_TREE_END,
+    CHANNEL_ACTION_TREE_NEXT,
+    CHANNEL_ACTION_TREE_PREVIOUS,
+    CHANNEL_ACTION_TREE_ROOT,
+    CHANNEL_ENGINE_CHANGED,
+    CHANNEL_EVENT_ANALYSIS_MOVE_CANDIDATE,
+    CHANNEL_EVENT_ANALYSIS_MOVE_SCORE,
+    CHANNEL_INVOKE_ANALYSIS_GO,
+    CHANNEL_INVOKE_ANALYSIS_HALT,
+    CHANNEL_INVOKE_BAZZO
+} from "../shared/ipc-constants";
 
 // The following makes versions a global that is accessible in the render process.
 // "foobar" is referred to as an apiKey and the object is an api.
@@ -12,7 +30,13 @@ import { CHANNEL_ACTION_BOARD_FLIP, CHANNEL_ACTION_GAME_CLEAR, CHANNEL_ACTION_GA
 contextBridge.exposeInMainWorld("foobar", {
     baz: (name: string) => {
         // "bazzo" is referred to as a channel.
-        return ipcRenderer.invoke("bazzo", name);
+        return ipcRenderer.invoke(CHANNEL_INVOKE_BAZZO, name);
+    },
+    go: (fen: string) => {
+        return ipcRenderer.invoke(CHANNEL_INVOKE_ANALYSIS_GO, fen);
+    },
+    halt: () => {
+        return ipcRenderer.invoke(CHANNEL_INVOKE_ANALYSIS_HALT);
     },
     onNewGameClassic: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_GAME_NEW, (_event: IpcRendererEvent) => callback()),
     onGameClear: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_GAME_CLEAR, (_event: IpcRendererEvent) => callback()),
@@ -23,7 +47,11 @@ contextBridge.exposeInMainWorld("foobar", {
     onTreeBackward: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_TREE_PREVIOUS, (_event: IpcRendererEvent) => callback()),
     onTreeForward: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_TREE_NEXT, (_event: IpcRendererEvent) => callback()),
     onBoardFlip: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_BOARD_FLIP, (_event: IpcRendererEvent) => callback()),
-    onEngineChange: (callback: (filename: string) => void) => ipcRenderer.on(CHANNEL_ENGINE_CHANGED, (_event: IpcRendererEvent, value: string) => callback(value))
+    onEngineChange: (callback: (filename: string) => void) => ipcRenderer.on(CHANNEL_ENGINE_CHANGED, (_event: IpcRendererEvent, value: string) => callback(value)),
+    onAnalysisGo: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_ANALYSIS_GO, (_event: IpcRendererEvent) => callback()),
+    onAnalysisHalt: (callback: () => void) => ipcRenderer.on(CHANNEL_ACTION_ANALYSIS_HALT, (_event: IpcRendererEvent) => callback()),
+    onAnalysisMoveScore: (callback: (info: unknown) => void) => ipcRenderer.on(CHANNEL_EVENT_ANALYSIS_MOVE_SCORE, (_event: IpcRendererEvent, info) => callback(info)),
+    onAnalysisMoveCandidate: (callback: (info: unknown) => void) => ipcRenderer.on(CHANNEL_EVENT_ANALYSIS_MOVE_CANDIDATE, (_event: IpcRendererEvent, info) => callback(info))
 });
 
 contextBridge.exposeInMainWorld("api", {
@@ -55,32 +83,32 @@ contextBridge.exposeInMainWorld("api", {
  * https://www.electronjs.org/docs/latest/tutorial/tutorial-preload
  */
 
-function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {
-    return new Promise(resolve => {
+function domReady(condition: DocumentReadyState[] = ["complete", "interactive"]) {
+    return new Promise((resolve) => {
         if (condition.includes(document.readyState)) {
-            resolve(true)
+            resolve(true);
         } else {
-            document.addEventListener('readystatechange', () => {
+            document.addEventListener("readystatechange", () => {
                 if (condition.includes(document.readyState)) {
-                    resolve(true)
+                    resolve(true);
                 }
-            })
+            });
         }
-    })
+    });
 }
 
 const safeDOM = {
     append(parent: HTMLElement, child: HTMLElement) {
-        if (!Array.from(parent.children).find(e => e === child)) {
-            parent.appendChild(child)
+        if (!Array.from(parent.children).find((e) => e === child)) {
+            parent.appendChild(child);
         }
     },
     remove(parent: HTMLElement, child: HTMLElement) {
-        if (Array.from(parent.children).find(e => e === child)) {
-            parent.removeChild(child)
+        if (Array.from(parent.children).find((e) => e === child)) {
+            parent.removeChild(child);
         }
-    },
-}
+    }
+};
 
 /**
  * https://tobiasahlin.com/spinkit
@@ -89,7 +117,7 @@ const safeDOM = {
  * https://matejkustec.github.io/SpinThatShit
  */
 function useLoading() {
-    const className = `loaders-css__square-spin`
+    const className = `loaders-css__square-spin`;
     const styleContent = `
   @keyframes square-spin {
     25% { transform: perspective(100px) rotateX(180deg) rotateY(0); }
@@ -116,36 +144,36 @@ function useLoading() {
     background: #282c34;
     z-index: 9;
   }
-      `
-    const oStyle = document.createElement('style')
-    const oDiv = document.createElement('div')
+      `;
+    const oStyle = document.createElement("style");
+    const oDiv = document.createElement("div");
 
-    oStyle.id = 'app-loading-style'
-    oStyle.innerHTML = styleContent
-    oDiv.className = 'app-loading-wrap'
-    oDiv.innerHTML = `<div class="${className}"><div></div></div>`
+    oStyle.id = "app-loading-style";
+    oStyle.innerHTML = styleContent;
+    oDiv.className = "app-loading-wrap";
+    oDiv.innerHTML = `<div class="${className}"><div></div></div>`;
 
     return {
         appendLoading() {
-            safeDOM.append(document.head, oStyle)
-            safeDOM.append(document.body, oDiv)
+            safeDOM.append(document.head, oStyle);
+            safeDOM.append(document.body, oDiv);
         },
         removeLoading() {
-            safeDOM.remove(document.head, oStyle)
-            safeDOM.remove(document.body, oDiv)
-        },
-    }
+            safeDOM.remove(document.head, oStyle);
+            safeDOM.remove(document.body, oDiv);
+        }
+    };
 }
 
 // ----------------------------------------------------------------------
 
-const { appendLoading, removeLoading } = useLoading()
-domReady().then(appendLoading)
+const { appendLoading, removeLoading } = useLoading();
+domReady().then(appendLoading);
 
 window.onmessage = (ev: MessageEvent) => {
-    if (ev.data.payload === 'removeLoading') {
-        removeLoading()
+    if (ev.data.payload === "removeLoading") {
+        removeLoading();
     }
-}
+};
 
-setTimeout(removeLoading, 4999)
+setTimeout(removeLoading, 4999);

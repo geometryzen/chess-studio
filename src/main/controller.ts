@@ -1,3 +1,5 @@
+import { App } from "electron";
+import { join } from "path";
 import { Engine } from "./engine/Engine";
 import { BestMove } from "./engine/parseBestmove";
 import { Info } from "./engine/parseInfo";
@@ -6,25 +8,34 @@ import { Config, load, save } from "./modules/config_io";
 
 export class Controller implements MenuHandler {
     readonly engine = new Engine();
-    readonly config: Config = new Config();
+    readonly config: Config;
+    readonly configPath: string;
 
-    constructor() {
-        this.config = load();
-        // console.lg(`${JSON.stringify(this.config)}`);
+    constructor(app: App) {
+        const userDataPath = app.getPath("userData")
+        console.log(`userDataPath: ${userDataPath}`);
+        this.configPath = join(userDataPath, "config.json");
+        this.config = load(this.configPath);
+        console.log(`config: ${JSON.stringify(this.config, null, 2)}`);
     }
 
-    getEngineFolder(): string {
-        return this.config.engine_dialog_folder;
+    getEngineFolder(): string | undefined {
+        return this.config.engineFolder;
     }
 
     setEngineFolder(engineFolder: string): void {
-        this.config.engine_dialog_folder = engineFolder;
-        save(this.config);
+        this.config.engineFolder = engineFolder;
+        console.log(`config: ${JSON.stringify(this.config, null, 2)}`);
+        save(this.configPath, this.config);
     }
 
     async restart_engine(): Promise<void> {
-        if (this.config.path) {
-            this.switch_engine(this.config.path);
+        console.log(`Controller.restart_engine() path=${this.config.engineFilename}`)
+        if (this.config.engineFilename) {
+            this.switch_engine(this.config.engineFilename);
+        }
+        else {
+
         }
     }
 
@@ -37,8 +48,9 @@ export class Controller implements MenuHandler {
             // The options aren't so easy to see because they are a map.
             console.log(JSON.stringify(Object.keys(this.engine.options)));
 
-            this.config.path = filePath;
-            save(this.config);
+            this.config.engineFilename = filePath;
+            console.log(`config: ${JSON.stringify(this.config, null, 2)}`);
+            save(this.configPath, this.config);
 
             console.log("setoption");
             // await this.engine.setoption("MultiPV", "4");

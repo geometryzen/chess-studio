@@ -57,7 +57,7 @@ function Sign(n: number): 0 | 1 | -1 {
     return 0;
 }
 
-function SortedMoveInfo(node: Node) {
+export function SortedMoveInfo(node: Node): Info[] {
     if (!node || node.destroyed) {
         return [];
     }
@@ -65,7 +65,7 @@ function SortedMoveInfo(node: Node) {
     return SortedMoveInfoFromTable(node.table);
 }
 
-function SortedMoveInfoFromTable(table: Table) {
+function SortedMoveInfoFromTable(table: Table): Info[] {
     // There are a lot of subtleties around sorting the moves...
     //
     // - We want to allow other engines than Lc0.
@@ -179,6 +179,9 @@ function SortedMoveInfoFromTable(table: Table) {
  * The table object stores info from the engine about a game-tree (PGN) node.
  */
 export class Table {
+    /**
+     * The key is the UCI move i.e. long algebraic notation.
+     */
     moveinfo: Record<string, Info>;
     version: number;
     nodes: number;
@@ -250,7 +253,7 @@ export class Table {
         }
     }
 
-    autopopulate(node: Node) {
+    autopopulate(node: Node): void {
         if (!node) {
             throw "autopopulate() requires node argument";
         }
@@ -263,7 +266,7 @@ export class Table {
             return;
         }
 
-        let moves = node.board.movegen();
+        const moves = node.board.movegen();
 
         for (let move of moves) {
             if (node.table.moveinfo[move] === undefined) {

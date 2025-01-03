@@ -91,7 +91,6 @@ export class Node {
      * @returns
      */
     make_move(s: string, force_new_node?: boolean): Node {
-
         if (!force_new_node) {
             for (let child of this.children) {
                 if (child.move === s) {

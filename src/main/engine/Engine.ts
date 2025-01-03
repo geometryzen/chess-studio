@@ -61,7 +61,7 @@ export async function example() {
     await engine.hydrate("path/to/engine");
     await engine.setoption("MultiPV", "4");
     await engine.isready();
-    engine.position("startpos", ["e2e4", "e7e5"]);
+    await engine.position("startpos", ["e2e4", "e7e5"]);
     engine.info$.subscribe(function (info: Info) {});
     engine.bestmove$.subscribe(function (bestmove: BestMove) {});
     engine.go({ depth: 4 });

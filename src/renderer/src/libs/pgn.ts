@@ -1,13 +1,12 @@
 import { Node } from "./Node";
 import { SafeStringPGN, UnsafeStringHTML } from "./utils";
 
-
 export function make_pgn_string(node: Node) {
-
     const root = node.get_root();
     let start_fen = root.board.fen(true);
 
-    if (!root.tags) {							// This should be impossible.
+    if (!root.tags) {
+        // This should be impossible.
         root.tags = Object.create(null);
     }
 
@@ -29,11 +28,11 @@ export function make_pgn_string(node: Node) {
     let tags: string[] = [];
 
     for (let t of ["Event", "Site", "Date", "Round", "White", "Black", "Result"]) {
-        const root_tags = root.tags
+        const root_tags = root.tags;
         if (root_tags && root_tags[t]) {
-            const escaped = UnsafeStringHTML(root_tags[t])
-            if (typeof escaped === 'string') {
-                let val = SafeStringPGN(escaped);		// Undo HTML escaping then add PGN escaping.
+            const escaped = UnsafeStringHTML(root_tags[t]);
+            if (typeof escaped === "string") {
+                let val = SafeStringPGN(escaped); // Undo HTML escaping then add PGN escaping.
                 tags.push(`[${t} "${val}"]`);
             }
         }
@@ -53,14 +52,12 @@ export function make_pgn_string(node: Node) {
 }
 
 function make_movetext(node: Node) {
-
     let root = node.get_root();
     let ordered_nodes = get_ordered_nodes(root);
 
     let tokens: string[] = [];
 
     for (let item of ordered_nodes) {
-
         if (item === root) continue;
 
         // As it stands, item could be a "(" or ")" string, or an actual node...
@@ -69,7 +66,7 @@ function make_movetext(node: Node) {
             tokens.push(item);
         } else {
             let item_token = item.token(true);
-            let subtokens = item_token.split(" ").filter(z => z !== "");
+            let subtokens = item_token.split(" ").filter((z) => z !== "");
             for (let subtoken of subtokens) {
                 tokens.push(subtoken);
             }
@@ -119,7 +116,6 @@ function get_ordered_nodes(node: Node): (Node | string)[] {
 }
 
 function __order_nodes(node: Node, list: (Node | string)[], skip_self_flag: boolean) {
-
     // Write this node itself...
 
     if (!skip_self_flag) {

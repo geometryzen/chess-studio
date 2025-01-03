@@ -15,4 +15,4 @@ platformBrowserDynamic()
     .catch((err) => console.error(err));
 
 // Inform the preload script that the application has been loaded.
-postMessage({ payload: 'removeLoading' }, '*');
+postMessage({ payload: "removeLoading" }, "*");

@@ -20,11 +20,11 @@ export class AppComponent implements OnInit {
     constructor(
         private ipcService: IpcService,
         private foobarService: FoobarService
-    ) { }
+    ) {}
 
     async ngOnInit(): Promise<void> {
-        // const n = this.foobarService.baz("Wow!");
-        // console.lg(`foobar.baz("Wow!!!") => ${n}`);
+        const n = this.foobarService.baz("Wow!");
+        console.log(`foobar.baz("Wow!!!") => ${n}`);
     }
 
     clickDevTools() {

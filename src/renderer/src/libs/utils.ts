@@ -267,7 +267,7 @@ function Log(s) {
 
     if (typeof config.logfile !== "string" || config.logfile === "") {
         if (Log.logfilename) {
-            console.log(`Closing ${Log.logfilename}`);
+            console.lg(`Closing ${Log.logfilename}`);
             Log.stream.end();
             Log.stream = undefined;
             Log.logfilename = undefined;
@@ -279,7 +279,7 @@ function Log(s) {
 
     if (Log.logfilename !== config.logfile) {
         if (Log.logfilename) {
-            console.log(`Closing log ${Log.logfilename}`);
+            console.lg(`Closing log ${Log.logfilename}`);
             Log.stream.end();
             Log.stream = undefined;
             Log.logfilename = undefined;
@@ -288,12 +288,12 @@ function Log(s) {
         let actual_filepath = config.logfile_timestamp ? UniqueFilepath(config.logfile) : config.logfile;
         // Note that this isn't saved even temporarily - as far as the rest of the logic is concerned, we are logging to config.logfile
 
-        console.log(`Logging to ${actual_filepath}`);
+        console.lg(`Logging to ${actual_filepath}`);
         let flags = (config.clear_log) ? "w" : "a";
         let stream = fs.createWriteStream(actual_filepath, { flags: flags });		// Want var "stream" available via closure for the below...
 
         stream.on("error", (err) => {
-            console.log(err);
+            console.lg(err);
             stream.end();
             if (Log.stream === stream) {
                 Log.stream = undefined;
@@ -312,7 +312,7 @@ function Log(s) {
 */
 /*
 function LogBoth(s) {
-    console.log(s);
+    console.lg(s);
     Log(s);
 }
 */
@@ -665,7 +665,7 @@ function FileExceedsGigabyte(filename, multiplier = 1) {
             return false;
         }
     } catch (err) {
-        console.log("While checking file size: ", err.toString());
+        console.lg("While checking file size: ", err.toString());
         return false;		// Eh, who knows
     }
 }

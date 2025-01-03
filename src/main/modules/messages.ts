@@ -3,7 +3,7 @@
 import { filename as configFilename } from "./config_io.js";
 import { filename as engineFilename } from "./engineconfig_io.js";
 
-export const about_versus_mode = `The "play this colour" option causes Leela to \
+export const about_versus_mode = `The "play this color" option causes Leela to \
 evaluate one side of the position only. The top move is automatically played on \
 the board upon reaching the node limit (see the Engine menu). This allows you to \
 play against Leela.
