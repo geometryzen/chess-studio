@@ -16,7 +16,6 @@ export interface Config {
 export const defaults: Config = {};
 
 export const load = (configPath: string): Config => {
-
     const cfg: Config = {};
 
     if (existsSync(configPath)) {

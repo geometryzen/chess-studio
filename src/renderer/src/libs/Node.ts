@@ -55,7 +55,6 @@ export class Node {
     graph_length_knower: { val: number };
 
     constructor(parent: Node | null, move: string | null, board_for_root: Position | null) {
-        console.log(`constructor Node move=${move}`);
         // move must be legal; board is only relevant for root nodes
 
         this.id = next_node_id++;

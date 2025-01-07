@@ -12,8 +12,7 @@ export function menu_help(): MenuItemConstructorOptions {
             },
             {
                 label: "About",
-                click: () => {
-                }
+                click: () => {}
             }
         ]
     };

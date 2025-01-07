@@ -1,0 +1,20 @@
+<div part="board" style="width:480px; height: 480px;">
+
+    @for (y of ys; track y) {
+    @for (x of xs; track x) {
+    <div class="square" id="square-{{square(x,y)}}" [attr.data-square]="square(x,y)"
+        part="square {{square(x,y)}} {{squareColor(x,y)}} {{highlight(square(x,y))}}" (mousedown)="onMouseDown($event)"
+        (mouseenter)="onMouseEnter($event)" (mouseleave)="onMouseLeave($event)">
+        @if (x===0) {
+        <div part="notation numeric">{{rank(y)}}</div>
+        }
+        @if (y===7) {
+        <div part="notation alpha">{{file(x)}}</div>
+        }
+        @if (pieces[square(x,y)]) {
+        <chess-piece [piece]="pieces[square(x,y)]"></chess-piece>
+        }
+    </div>
+    }
+    }
+</div>

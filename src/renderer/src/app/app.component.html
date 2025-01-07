@@ -1,1 +1,10 @@
-<router-outlet></router-outlet>
+<div>
+    <chess-board id="board-ui" [orientation]="orientation" position="start" draggable-pieces></chess-board>
+</div>
+<div>
+    <chessstudio-board id="board-ux" [orientation]="orientation" [position]="position"
+        draggable-pieces></chessstudio-board>
+</div>
+<div>
+    <div id="status">{{status}}</div>
+</div>

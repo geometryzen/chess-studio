@@ -216,7 +216,6 @@ export class Tree {
      * @param move must be exactly a legal move, including having promotion char iff needed (e.g. e2e1q)
      */
     make_move(move: string): void {
-
         // We want to detect whether making the move creates a new node in the tree.
         const orig_node_id = next_node_id;
 
@@ -229,8 +228,7 @@ export class Tree {
         if (next_node_id !== orig_node_id) {
             // A node was constructed as a result of the move.
             this.increment_version();
-        }
-        else {
+        } else {
             // A node was not constructed as a result of the move because it already existed.
         }
         this.node.position_info.ensure_candidate_moves(this.node);
