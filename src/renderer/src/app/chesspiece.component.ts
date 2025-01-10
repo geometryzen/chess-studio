@@ -1,32 +1,21 @@
-import { booleanAttribute, Component, Input, NO_ERRORS_SCHEMA, OnDestroy, OnInit } from "@angular/core";
-
-function trimString(value: string | undefined): number {
-    return 7;
-}
+import { booleanAttribute, Component, Input, OnDestroy, OnInit } from "@angular/core";
 
 @Component({
     selector: "chess-piece",
     templateUrl: "./chesspiece.component.html",
     styleUrls: ["./chesspiece.component.scss"],
-    schemas: [NO_ERRORS_SCHEMA],
+    // schemas: [NO_ERRORS_SCHEMA],
     standalone: true
 })
 export class ChessPiece implements OnInit, OnDestroy {
-    @Input()
-    get piece(): string {
-        return this.#piece;
-    }
-    set piece(piece: string) {
-        this.#piece = piece;
-    }
-    #piece = "";
+    @Input({ alias: "piece" }) piece: string | undefined;
     @Input({ alias: "dragged", transform: booleanAttribute }) dragged: boolean = false;
     @Input({ alias: "left" }) left: string | undefined;
     @Input({ alias: "top" }) top: string | undefined;
     @Input({ alias: "width" }) width: string | undefined;
     @Input({ alias: "height" }) height: string | undefined;
     ngOnInit(): void {
-        // console.lg("ChessPiece.ngOnInit");
+        console.log(`ChessPiece.ngOnInit piece=${this.piece}`);
     }
     ngOnDestroy(): void {
         // console.lg("ChessPiece.ngOnDestroy");

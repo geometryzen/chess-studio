@@ -24,8 +24,8 @@ interface LegalMove {
 })
 export class AppComponent implements OnInit, OnDestroy {
     readonly tree = new Tree();
-    @ViewChild(ChessBoard) boardA!: ChessBoard;
-    boardB!: ChessBoardElement;
+    @ViewChild(ChessBoard) boardA: ChessBoard | undefined;
+    boardB: ChessBoardElement | null = null;
     /**
      * The node that the Chess engine is currently analyzing.
      * This is used to ensure that the engine analysis is applied to the correct node,
@@ -49,45 +49,55 @@ export class AppComponent implements OnInit, OnDestroy {
         // console.lg("chessboard");
         await window.customElements.whenDefined("chess-board");
         // The idea here is to set up the board and observables once and them use them in different modes.
-        this.boardB = document.getElementById("board-ui") as ChessBoardElement;
-        this.change$ = fromEvent<ChangeEvent>(this.boardB, "change");
-        this.boardB.sparePieces = false;
-        this.boardB.draggablePieces = true;
+        this.boardB = document.getElementById("board-ui") as ChessBoardElement | null;
+        if (this.boardB) {
+            this.change$ = fromEvent<ChangeEvent>(this.boardB, "change");
+            this.boardB.sparePieces = false;
+            this.boardB.draggablePieces = true;
 
-        this.change$.subscribe((event) => {
-            this.onChange(event);
-        });
-        this.dragStart$ = fromEvent<DragStartEvent>(this.boardB, "drag-start");
-        this.dragStart$.subscribe((event) => {
-            this.onDragStart(event);
-        });
-        fromEvent<DragMoveEvent>(this.boardB, "drag-move").subscribe((event) => {
-            this.onDragMove(event);
-        });
-        fromEvent<DropEvent>(this.boardB, "drop").subscribe((event) => {
-            this.onDropEvent(event);
-        });
-        fromEvent<SnapEndEvent>(this.boardB, "snap-end").subscribe((event) => {
-            this.onSnapEndEvent(event);
-        });
-        fromEvent<SnapbackEndEvent>(this.boardB, "snapback-end").subscribe((event) => {
-            this.onSnapbackEndEvent(event);
-        });
-        fromEvent<MoveEndEvent>(this.boardB, "move-end").subscribe((event) => {
-            this.onMoveEndEvent(event);
-        });
+            this.change$.subscribe((event) => {
+                this.onChange(event);
+            });
+            this.dragStart$ = fromEvent<DragStartEvent>(this.boardB, "drag-start");
+            this.dragStart$.subscribe((event) => {
+                this.onDragStart(event);
+            });
+            fromEvent<DragMoveEvent>(this.boardB, "drag-move").subscribe((event) => {
+                this.onDragMove(event);
+            });
+            fromEvent<DropEvent>(this.boardB, "drop").subscribe((event) => {
+                this.onDropEvent(event);
+            });
+            fromEvent<SnapEndEvent>(this.boardB, "snap-end").subscribe((event) => {
+                this.onSnapEndEvent(event);
+            });
+            fromEvent<SnapbackEndEvent>(this.boardB, "snapback-end").subscribe((event) => {
+                this.onSnapbackEndEvent(event);
+            });
+            fromEvent<MoveEndEvent>(this.boardB, "move-end").subscribe((event) => {
+                this.onMoveEndEvent(event);
+            });
+        }
         this.controller.onNewGameClassic(() => {
             this.tree.reset();
             this.position = this.tree.fen();
-            this.boardA.setPosition(this.position, this.useAnimation);
-            this.boardB.setPosition(this.position, this.useAnimation);
+            if (this.boardA) {
+                this.boardA.setPosition(this.position, this.useAnimation);
+            }
+            if (this.boardB) {
+                this.boardB.setPosition(this.position, this.useAnimation);
+            }
             this.exitSetupMode();
         });
         this.controller.onGameClear(() => {
             this.tree.clear();
             this.position = this.tree.fen();
-            this.boardA.clear(this.useAnimation);
-            this.boardB.clear(this.useAnimation);
+            if (this.boardA) {
+                this.boardA.clear(this.useAnimation);
+            }
+            if (this.boardB) {
+                this.boardB.clear(this.useAnimation);
+            }
             this.enterSetupMode();
         });
         this.controller.onGameSetup(() => {
@@ -119,8 +129,12 @@ export class AppComponent implements OnInit, OnDestroy {
             try {
                 // console.lg(`version: ${this.tree.version$.getValue()}`);
                 this.position = this.tree.fen();
-                this.boardA.setPosition(this.position);
-                this.boardB.setPosition(this.position);
+                if (this.boardA) {
+                    this.boardA.setPosition(this.position);
+                }
+                if (this.boardB) {
+                    this.boardB.setPosition(this.position);
+                }
                 if (this.engineNode) {
                     // Any further events will be discarded.
                     this.engineNode = null;
@@ -193,24 +207,42 @@ export class AppComponent implements OnInit, OnDestroy {
 
     enterSetupMode() {
         this.is_setup_mode = true;
-        this.boardA.sparePieces = true;
-        this.boardA.dropOffBoard = "trash";
-        this.boardB.sparePieces = true;
-        this.boardB.dropOffBoard = "trash";
+        if (this.boardA) {
+            this.boardA.sparePieces = true;
+            this.boardA.dropOffBoard = "trash";
+        }
+        if (this.boardB) {
+            this.boardB.sparePieces = true;
+            this.boardB.dropOffBoard = "trash";
+        }
         this.updateStatus();
     }
     exitSetupMode() {
-        this.boardA.sparePieces = false;
-        this.boardA.dropOffBoard = "snapback";
-        this.boardB.sparePieces = false;
-        this.boardB.dropOffBoard = "snapback";
+        if (this.boardA) {
+            this.boardA.sparePieces = false;
+            this.boardA.dropOffBoard = "snapback";
+        }
+        if (this.boardB) {
+            this.boardB.sparePieces = false;
+            this.boardB.dropOffBoard = "snapback";
+        }
         this.is_setup_mode = false;
         try {
-            const fen = `${this.boardB.fen()} w KQkq - 0 1`;
-            // console.lg("fen", fen);
-            if (fen) {
-                // The
-                this.tree.load(fen);
+            if (this.boardA) {
+                const fen = `${this.boardA.fen()} w KQkq - 0 1`;
+                // console.lg("fen", fen);
+                if (fen) {
+                    // The
+                    this.tree.load(fen);
+                }
+            }
+            if (this.boardB) {
+                const fen = `${this.boardB.fen()} w KQkq - 0 1`;
+                // console.lg("fen", fen);
+                if (fen) {
+                    // The
+                    this.tree.load(fen);
+                }
             }
             this.updateStatus();
         } catch (e) {
@@ -390,9 +422,17 @@ export class AppComponent implements OnInit, OnDestroy {
         const { piece, square } = event.detail;
 
         if (this.is_setup_mode) {
-            const position = this.boardB.fen();
-            if (position) {
-                this.position = position;
+            if (this.boardA) {
+                const position = this.boardA.fen();
+                if (position) {
+                    this.position = position;
+                }
+            }
+            else if (this.boardB) {
+                const position = this.boardB.fen();
+                if (position) {
+                    this.position = position;
+                }
             }
         } else {
             // update the board position after the piece snap

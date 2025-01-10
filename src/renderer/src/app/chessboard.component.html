@@ -1,10 +1,35 @@
+@if (sparePieces) {
+<div part="spare-pieces">
+    <div></div>
+    <div id="spare-bK" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="bK"></chess-piece>
+    </div>
+    <div id="spare-bQ" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="bQ"></chess-piece>
+    </div>
+    <div id="spare-bR" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="bR"></chess-piece>
+    </div>
+    <div id="spare-bB" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="bB"></chess-piece>
+    </div>
+    <div id="spare-bN" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="bN"></chess-piece>
+    </div>
+    <div id="spare-bP" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="bP"></chess-piece>
+    </div>
+    <div></div>
+</div>
+}
 <div part="board" style="width:480px; height: 480px;">
 
     @for (y of ys; track y) {
     @for (x of xs; track x) {
     <div class="square" id="square-{{square(x,y)}}" [attr.data-square]="square(x,y)"
-        part="square {{square(x,y)}} {{squareColor(x,y)}} {{highlight(square(x,y))}}" (mousedown)="onMouseDown($event)"
-        (mouseenter)="onMouseEnter($event)" (mouseleave)="onMouseLeave($event)">
+        part="square {{square(x,y)}} {{squareColor(x,y)}} {{highlight(square(x,y))}}"
+        (mousedown)="_mousedownSquare($event)" (mouseenter)="_mouseenterSquare($event)"
+        (mouseleave)="_mouseleaveSquare($event)" (touchstart)="_mousedownSquare($event)">
         @if (x===0) {
         <div part="notation numeric">{{rank(y)}}</div>
         }
@@ -22,6 +47,30 @@
     }
     }
 </div>
+@if (sparePieces) {
+<div part="spare-pieces">
+    <div></div>
+    <div id="spare-wK" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece id="spare-piece-wK" piece="wK"></chess-piece>
+    </div>
+    <div id="spare-wQ" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="wQ"></chess-piece>
+    </div>
+    <div id="spare-wR" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="wR"></chess-piece>
+    </div>
+    <div id="spare-wB" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="wB"></chess-piece>
+    </div>
+    <div id="spare-wN" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="wN"></chess-piece>
+    </div>
+    <div id="spare-wP" (mousedown)="_mousedownSparePiece($event)" (touchstart)="_mousedownSparePiece($event)">
+        <chess-piece piece="wP"></chess-piece>
+    </div>
+    <div></div>
+</div>
+}
 <div id="dragged-pieces" style="width:60px; height: 60px;">
     @if (is_dragging()) {
     <chess-piece piece="{{dragged_piece()}}" dragged left="{{dragged_piece_left()}}" top="{{dragged_piece_top()}}"

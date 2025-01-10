@@ -242,7 +242,7 @@ export class ChessBoard implements OnInit, OnDestroy {
     @Input({ alias: "snap-speed" }) snapSpeed: AnimationSpeed = DEFAULT_SNAP_SPEED;
     @Input({ alias: "snapback-speed" }) snapbackSpeed: AnimationSpeed = DEFAULT_SNAPBACK_SPEED;
 
-    _dragState?: DragState;
+    #dragState?: DragState;
     /**
      * https://developer.mozilla.org/en-US/docs/Web/API/Element/transitionend_event
      *
@@ -448,7 +448,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         return (x + y) % 2 > 0 ? "black" : "white";
     }
     highlight(square: string): "highlight" | "" {
-        const isDragSource = square === this._dragState?.source;
+        const isDragSource = square === this.#dragState?.source;
         const animation = this._animations.get(square);
         const highlight = isDragSource || this._highlightedSquares.has(square) ? "highlight" : "";
         // const pieceStyles = this._getAnimationStyles(piece, animation);
@@ -532,7 +532,8 @@ export class ChessBoard implements OnInit, OnDestroy {
         return {};
     }
 
-    onMouseDown(e: MouseEvent | TouchEvent): void {
+    _mousedownSquare(e: MouseEvent | TouchEvent): void {
+        console.log("onMouseDown")
         // do nothing if we're not draggable. sparePieces implies draggable
         if (!this.draggablePieces && !this.sparePieces) {
             return;
@@ -541,6 +542,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         // do nothing if there is no piece on this square
         const squareEl = e.currentTarget as HTMLElement;
         const square = squareEl.getAttribute("data-square");
+        console.log(`data-square: ${square}`);
         if (square === null || !this.pieces.hasOwnProperty(square)) {
             return;
         }
@@ -548,10 +550,25 @@ export class ChessBoard implements OnInit, OnDestroy {
         const pos = e instanceof MouseEvent ? e : e.changedTouches[0];
         this._beginDraggingPiece(square, this.pieces[square]!, pos.clientX, pos.clientY);
     }
-    onMouseEnter(e: Event): void {
+    _mousedownSparePiece(e: MouseEvent | TouchEvent) {
+        console.log("_mousedownSparePiece")
+        // do nothing if sparePieces is not enabled
+        if (!this.sparePieces) {
+            return;
+        }
+        const sparePieceContainerEl = e.currentTarget as HTMLElement;
+        const pieceEl = sparePieceContainerEl.querySelector("[part~=piece]");
+        //
+        const piece = pieceEl!.getAttribute("piece")!;
+        console.log("piece", piece);
+        e.preventDefault();
+        const pos = e instanceof MouseEvent ? e : e.changedTouches[0];
+        this._beginDraggingPiece("spare", piece, pos.clientX, pos.clientY);
+    }
+    _mouseenterSquare(e: Event): void {
         // do not fire this event if we are dragging a piece
         // NOTE: this should never happen, but it's a safeguard
-        if (this._dragState !== undefined) {
+        if (this.#dragState !== undefined) {
             return;
         }
 
@@ -578,10 +595,10 @@ export class ChessBoard implements OnInit, OnDestroy {
 
         this.mouseoverSquare$.emit(moseoverSquareEvent);
     }
-    onMouseLeave(e: Event): void {
+    _mouseleaveSquare(e: Event): void {
         // Do not fire this event if we are dragging a piece
         // NOTE: this should never happen, but it's a safeguard
-        if (this._dragState !== undefined) {
+        if (this.#dragState !== undefined) {
             return;
         }
 
@@ -609,7 +626,7 @@ export class ChessBoard implements OnInit, OnDestroy {
     }
     private _mousemoveWindow = (e: MouseEvent | TouchEvent) => {
         // Do nothing if we are not dragging a piece
-        if (!(this._dragState?.state === "dragging")) {
+        if (!(this.#dragState?.state === "dragging")) {
             return;
         }
         // Prevent screen from scrolling
@@ -620,7 +637,7 @@ export class ChessBoard implements OnInit, OnDestroy {
 
     private _mouseupWindow = (e: MouseEvent | TouchEvent) => {
         // Do nothing if we are not dragging a piece
-        if (!(this._dragState?.state === "dragging")) {
+        if (!(this.#dragState?.state === "dragging")) {
             return;
         }
         const pos = e instanceof MouseEvent ? e : e.changedTouches[0];
@@ -647,7 +664,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
 
         // set state
-        this._dragState = {
+        this.#dragState = {
             state: "dragging",
             x,
             y,
@@ -660,24 +677,24 @@ export class ChessBoard implements OnInit, OnDestroy {
     }
 
     private _updateDraggedPiece(x: number, y: number) {
-        assertIsDragging(this._dragState);
+        assertIsDragging(this.#dragState);
 
         // put the dragged piece over the mouse cursor
-        this._dragState.x = x;
-        this._dragState.y = y;
+        this.#dragState.x = x;
+        this.#dragState.y = y;
 
         this.requestUpdate();
 
         const location = this._isXYOnSquare(x, y);
 
         // do nothing more if the location has not changed
-        if (location === this._dragState.location) {
+        if (location === this.#dragState.location) {
             return;
         }
 
         // remove highlight from previous square
-        if (validSquare(this._dragState.location)) {
-            this._highlightSquare(this._dragState.location, false);
+        if (validSquare(this.#dragState.location)) {
+            this._highlightSquare(this.#dragState.location, false);
         }
 
         // add highlight to new square
@@ -689,9 +706,9 @@ export class ChessBoard implements OnInit, OnDestroy {
             bubbles: true,
             detail: {
                 newLocation: location,
-                oldLocation: this._dragState.location,
-                source: this._dragState.source,
-                piece: this._dragState.piece,
+                oldLocation: this.#dragState.location,
+                source: this.#dragState.source,
+                piece: this.#dragState.piece,
                 position: deepCopy(this.pieces),
                 orientation: this.orientation
             }
@@ -699,13 +716,13 @@ export class ChessBoard implements OnInit, OnDestroy {
         this.dragMove$.emit(dragMoveEvent);
 
         // update state
-        this._dragState.location = location;
+        this.#dragState.location = location;
     }
 
     private async _stopDraggedPiece(location: Location | "offboard") {
         // console.lg("stopDraggingPiece");
-        assertIsDragging(this._dragState);
-        const { source, piece } = this._dragState;
+        assertIsDragging(this.#dragState);
+        const { source, piece } = this.#dragState;
 
         // determine what the action should be
         let action: Action = "drop";
@@ -763,7 +780,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
 
         // clear state
-        this._dragState = undefined;
+        this.#dragState = undefined;
 
         // Render the final non-dragging state
         this.requestUpdate();
@@ -808,15 +825,15 @@ export class ChessBoard implements OnInit, OnDestroy {
         this.requestUpdate("_highlightedSquares");
     }
     private async _snapbackDraggedPiece() {
-        assertIsDragging(this._dragState);
-        const { source, piece } = this._dragState;
+        assertIsDragging(this.#dragState);
+        const { source, piece } = this.#dragState;
 
         // there is no "snapback" for spare pieces
         if (source === "spare") {
             return this._trashDraggedPiece();
         }
 
-        this._dragState = {
+        this.#dragState = {
             state: "snapback",
             piece,
             source
@@ -853,20 +870,20 @@ export class ChessBoard implements OnInit, OnDestroy {
     }
 
     private async _trashDraggedPiece() {
-        assertIsDragging(this._dragState);
-        const { source, piece } = this._dragState;
+        assertIsDragging(this.#dragState);
+        const { source, piece } = this.#dragState;
 
         // remove the source piece
         const newPosition = deepCopy(this.pieces);
         delete newPosition[source];
         this._setCurrentPosition(newPosition);
 
-        this._dragState = {
+        this.#dragState = {
             state: "trash",
             piece,
-            x: this._dragState.x,
-            y: this._dragState.y,
-            source: this._dragState.source
+            x: this.#dragState.x,
+            y: this.#dragState.y,
+            source: this.#dragState.source
         };
 
         // Wait for a paint
@@ -889,8 +906,8 @@ export class ChessBoard implements OnInit, OnDestroy {
     }
 
     private async _dropDraggedPieceOnSquare(square: string) {
-        assertIsDragging(this._dragState);
-        const { source, piece } = this._dragState;
+        assertIsDragging(this.#dragState);
+        const { source, piece } = this.#dragState;
 
         // update position
         const newPosition = deepCopy(this.pieces);
@@ -898,7 +915,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         newPosition[square] = piece;
         this._setCurrentPosition(newPosition);
 
-        this._dragState = {
+        this.#dragState = {
             state: "snap",
             piece,
             location: square,
@@ -1078,20 +1095,20 @@ export class ChessBoard implements OnInit, OnDestroy {
     requestUpdate(hint?: string): void {
         // TODO: Probably only needed for templated components.
         // However, this also gives us an opportunity to drag the piece.
-        if (this._dragState) {
+        if (this.#dragState) {
             // console.lg(`requestUpdate(hint=${hint})`);
             // console.lg(JSON.stringify(this._dragState, null, 2));
             // These are the three parts of the drag state.
-            const piece = this._dragState.piece;
-            const state = this._dragState.state;
+            const piece = this.#dragState.piece;
+            const state = this.#dragState.state;
             // console.lg(JSON.stringify(state, null, 2));
             switch (state) {
                 case "dragging": {
-                    assertIsDragging(this._dragState);
-                    const x = this._dragState.x;
-                    const y = this._dragState.y;
+                    assertIsDragging(this.#dragState);
+                    const x = this.#dragState.x;
+                    const y = this.#dragState.y;
                     // console.lg(JSON.stringify(this._dragState, null, 2));
-                    const square = this._dragState.location;
+                    const square = this.#dragState.location;
                     const animation = this._animations.get(square);
                     const pieceStyles = this._getAnimationStyles(piece, animation);
                     // We still don't have any pieceStyles, but we do know where the piece is.
@@ -1103,8 +1120,8 @@ export class ChessBoard implements OnInit, OnDestroy {
     }
 
     is_dragging(): boolean {
-        if (this._dragState) {
-            const state = this._dragState.state;
+        if (this.#dragState) {
+            const state = this.#dragState.state;
             switch (state) {
                 case "dragging": {
                     return true;
@@ -1115,11 +1132,11 @@ export class ChessBoard implements OnInit, OnDestroy {
     }
 
     is_dragged_square(square: Location): boolean {
-        if (this._dragState) {
-            const state = this._dragState.state;
+        if (this.#dragState) {
+            const state = this.#dragState.state;
             switch (state) {
                 case "dragging": {
-                    return this._dragState.source === square;
+                    return this.#dragState.source === square;
                 }
             }
         }
@@ -1131,7 +1148,7 @@ export class ChessBoard implements OnInit, OnDestroy {
             height: `${this._squareSize}px`,
             width: `${this._squareSize}px`
         };
-        const dragState = this._dragState;
+        const dragState = this.#dragState;
         if (dragState !== undefined) {
             styles.display = "block";
             const rect = this.el.nativeElement.getBoundingClientRect();
@@ -1175,16 +1192,16 @@ export class ChessBoard implements OnInit, OnDestroy {
         return styles;
     }
     dragged_piece(): string | undefined {
-        if (this._dragState) {
-            return this._dragState.piece;
+        if (this.#dragState) {
+            return this.#dragState.piece;
         } else {
             return void 0;
         }
     }
 
     dragged_piece_left(): string | undefined {
-        if (this._dragState) {
-            const state = this._dragState.state;
+        if (this.#dragState) {
+            const state = this.#dragState.state;
             switch (state) {
                 case "dragging": {
                     const styles = this.computeDraggedPieceStyleDeclaration();
@@ -1199,8 +1216,8 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
     }
     dragged_piece_top(): string | undefined {
-        if (this._dragState) {
-            const state = this._dragState.state;
+        if (this.#dragState) {
+            const state = this.#dragState.state;
             switch (state) {
                 case "dragging": {
                     const styles = this.computeDraggedPieceStyleDeclaration();
@@ -1215,8 +1232,8 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
     }
     dragged_piece_height(): string | undefined {
-        if (this._dragState) {
-            const state = this._dragState.state;
+        if (this.#dragState) {
+            const state = this.#dragState.state;
             switch (state) {
                 case "dragging": {
                     const styles = this.computeDraggedPieceStyleDeclaration();
@@ -1231,8 +1248,8 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
     }
     dragged_piece_width(): string | undefined {
-        if (this._dragState) {
-            const state = this._dragState.state;
+        if (this.#dragState) {
+            const state = this.#dragState.state;
             switch (state) {
                 case "dragging": {
                     const styles = this.computeDraggedPieceStyleDeclaration();
