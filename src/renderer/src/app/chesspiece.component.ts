@@ -36,8 +36,7 @@ export class ChessPiece implements OnInit, OnDestroy {
             const s = `opacity: 0.5; transition-duration: 0ms; display: block; position: absolute; left:${this.left}; top:${this.top}; width:${this.width}; height:${this.height};`;
             // console.lg(s);
             return s;
-        }
-        else {
+        } else {
             return "opacity: 1; transition-duration: 0ms;";
         }
     }

@@ -7,7 +7,7 @@ import { Node } from "src/libs/Node";
 import { point_from_s, Square } from "src/libs/Position";
 import { sorted_primary_variations } from "src/libs/PositionInfo";
 import { Tree } from "src/libs/Tree";
-import { ChangeEvent, ChessBoard, DragMoveEvent, DragStartEvent, DropEvent, MoveEndEvent, SnapbackEndEvent, SnapEndEvent } from "./chessboard.component";
+import { ChangeEvent, ChessBoard, DragMoveEvent, DragStartEvent, DropEvent, MouseoutSquareEvent, MouseoverSquareEvent, MoveEndEvent, SnapbackEndEvent, SnapEndEvent } from "./chessboard.component";
 
 interface LegalMove {
     from: Square;
@@ -326,19 +326,10 @@ export class AppComponent implements OnInit, OnDestroy {
         */
     }
 
-    /**
-     * The Angular compiler ensures that the parameters here match what is emitted.
-     */
     onChange(event: ChangeEvent): void {
-        // console.lg(`${JSON.stringify(event.detail, null, 2)}`);
     }
     onDragStart(event: DragStartEvent): void {
         const { source, piece, position, orientation } = event.detail;
-        // console.lg("drag-start:");
-        // console.lg("Source: " + source);
-        // console.lg("Piece: " + piece);
-        // console.lg("Position: " + objToFen(position));
-        // console.lg("Orientation: " + orientation);
         if (this.is_setup_mode) {
             // We can start to move the pieces.
         } else {
@@ -362,23 +353,9 @@ export class AppComponent implements OnInit, OnDestroy {
         }
     }
     onDragMove(event: DragMoveEvent): void {
-        const { newLocation, oldLocation, source, piece, position, orientation } = event.detail;
-        // console.lg("New location: " + newLocation);
-        // console.lg("Old location: " + oldLocation);
-        // console.lg("Source: " + source);
-        // console.lg("Piece: " + piece);
-        // console.lg("Position: " + objToFen(position));
-        // console.lg("Orientation: " + orientation);
     }
     onDropEvent(event: DropEvent): void {
-        // console.lg(`${JSON.stringify(event.detail, null, 2)}`);
         const { source, target, piece, newPosition, oldPosition, orientation, setAction } = event.detail;
-        // console.lg("Source: " + source);
-        // console.lg("Target: " + target);
-        // console.lg("Piece: " + piece);
-        // console.lg("New position: " + objToFen(newPosition));
-        // console.lg("Old position: " + objToFen(oldPosition));
-        // console.lg("Orientation: " + orientation);
         if (this.is_setup_mode) {
         } else {
             // see if the move is legal
@@ -410,17 +387,11 @@ export class AppComponent implements OnInit, OnDestroy {
         */
     }
     onSnapEndEvent(event: SnapEndEvent): void {
-        // console.lg(`${JSON.stringify(event.detail, null, 2)}`);
         const { piece, square } = event.detail;
 
-        // console.lg("Piece: " + piece);
-        // console.lg("Square: " + square);
-        // console.lg("Position: " + objToFen(position));
-        // console.lg("Orientation: " + orientation);
         if (this.is_setup_mode) {
             const position = this.boardB.fen();
             if (position) {
-                // console.lg(`position is ${position}`);
                 this.position = position;
             }
         } else {
@@ -430,19 +401,11 @@ export class AppComponent implements OnInit, OnDestroy {
         }
     }
     onSnapbackEndEvent(event: SnapbackEndEvent): void {
-        // console.lg("snapback-end:");
-        const { piece, square, position, orientation } = event.detail;
-
-        // console.lg("Piece: " + piece);
-        // console.lg("Square: " + square);
-        // console.lg("Position: " + objToFen(position));
-        // console.lg("Orientation: " + orientation);
-        // this.board.setPosition(this.game.fen());
     }
     onMoveEndEvent(event: MoveEndEvent): void {
-        // console.lg(`${JSON.stringify(event.detail, null, 2)}`);
-        // console.lg("move-end:");
-        // console.lg("Old position: " + objToFen(event.detail.oldPosition));
-        // console.lg("New position: " + objToFen(event.detail.newPosition));
+    }
+    onMouseoverSquareEvent(event: MouseoverSquareEvent): void {
+    }
+    onMouseoutSquareEvent(event: MouseoutSquareEvent): void {
     }
 }

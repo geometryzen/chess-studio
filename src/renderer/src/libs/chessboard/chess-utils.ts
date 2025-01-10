@@ -247,7 +247,7 @@ if (RUN_ASSERTS) {
     console.assert(objToFen({ a2: "wP", b2: "bP" }) === "8/8/8/8/8/8/Pp6/8");
 }
 
-export const normalizePozition = (position: Position | null): PositionObject => {
+export const normalizePosition = (position: Position | null): PositionObject => {
     if (position == null) {
         return {};
     }

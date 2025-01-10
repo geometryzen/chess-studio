@@ -1,6 +1,6 @@
 import { booleanAttribute, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output } from "@angular/core";
 import { fenToObj } from "chessboard-element";
-import { calculatePositionFromMoves, findClosestPiece, normalizePozition, objToFen, Piece, Position, PositionObject, validMove, validPositionObject, validSquare } from "src/libs/chessboard/chess-utils";
+import { calculatePositionFromMoves, findClosestPiece, normalizePosition, objToFen, Piece, Position, PositionObject, validMove, validPositionObject, validSquare } from "src/libs/chessboard/chess-utils";
 import { deepCopy } from "src/libs/chessboard/utils";
 import { ChessPiece } from "./chesspiece.component";
 
@@ -188,6 +188,24 @@ export interface MoveEndEvent extends Event {
     };
 }
 
+export interface MouseoverSquareEvent extends Event {
+    detail: {
+        piece: string | false;
+        square: string;
+        position: PositionObject;
+        orientation: "white" | "black";
+    };
+}
+
+export interface MouseoutSquareEvent extends Event {
+    detail: {
+        piece: string | false;
+        square: string;
+        position: PositionObject;
+        orientation: "white" | "black";
+    };
+}
+
 @Component({
     selector: "chessstudio-board",
     templateUrl: "./chessboard.component.html",
@@ -253,7 +271,6 @@ export class ChessBoard implements OnInit, OnDestroy {
     private _animations = new Map<Location, Animation>();
 
     dropOffBoard: OffBoardAction = "snapback";
-    @Output() ee = new EventEmitter<Event>();
     // I'm not sure whether these can be private?
     // Don't really want emit to be part of the public API.
     @Output("changed") changed$ = new EventEmitter<ChangeEvent>();
@@ -263,6 +280,8 @@ export class ChessBoard implements OnInit, OnDestroy {
     @Output("snap-end") snapEnd$ = new EventEmitter<SnapEndEvent>();
     @Output("snapback-end") snapbackEnd$ = new EventEmitter<SnapbackEndEvent>();
     @Output("move-end") moveEnd$ = new EventEmitter<MoveEndEvent>();
+    @Output("mouseover-square") mouseoverSquare$ = new EventEmitter<MouseoverSquareEvent>();
+    @Output("mouseout-square") mouseoutSquare$ = new EventEmitter<MouseoutSquareEvent>();
 
     constructor(private el: ElementRef) {
         this.pieces["a8"] = "bR";
@@ -309,20 +328,20 @@ export class ChessBoard implements OnInit, OnDestroy {
      * @param useAnimation If `true`, animate to the new position. If `false`,
      *   show the new position instantly.
      */
-    setPosition(position: Position, useAnimation = true) {
-        position = normalizePozition(position);
+    setPosition(position: Position, useAnimation = true): void | never {
+        const positionObj = normalizePosition(position);
 
         // validate position object
-        if (!validPositionObject(position)) {
-            throw this._error(6482, "Invalid value passed to the position method.", position);
+        if (!validPositionObject(positionObj)) {
+            throw new Error("Invalid position", positionObj);
         }
 
         if (useAnimation) {
             // start the animations
-            const animations = this._calculateAnimations(this.pieces, position);
-            this._doAnimations(animations, this.pieces, position);
+            const animations = this._calculateAnimations(this.pieces, positionObj);
+            this._doAnimations(animations, this.pieces, positionObj);
         }
-        this._setCurrentPosition(position);
+        this._setCurrentPosition(positionObj);
         this.requestUpdate();
     }
     /**
@@ -376,8 +395,7 @@ export class ChessBoard implements OnInit, OnDestroy {
 
             // skip invalid arguments
             if (!validMove(arg)) {
-                this._error(2826, "Invalid move passed to the move method.", arg);
-                continue;
+                throw new Error("Invalid move", arg)
             }
 
             const [from, to] = arg.split("-");
@@ -538,7 +556,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
 
         // get the square
-        const square = (e.currentTarget as HTMLElement).getAttribute("data-square");
+        const square: string | null = (e.currentTarget as HTMLElement).getAttribute("data-square");
 
         // NOTE: this should never happen; defensive
         if (!validSquare(square)) {
@@ -548,17 +566,17 @@ export class ChessBoard implements OnInit, OnDestroy {
         // Get the piece on this square
         const piece = this.pieces.hasOwnProperty(square) && this.pieces[square]!;
 
-        this.dispatchEvent(
-            new CustomEvent("mouseover-square", {
-                bubbles: true,
-                detail: {
-                    square,
-                    piece,
-                    position: deepCopy(this.pieces),
-                    orientation: this.orientation
-                }
-            })
-        );
+        const moseoverSquareEvent: MouseoverSquareEvent = new CustomEvent("mouseover-square", {
+            bubbles: true,
+            detail: {
+                square,
+                piece,
+                position: deepCopy(this.pieces),
+                orientation: this.orientation
+            }
+        });
+
+        this.mouseoverSquare$.emit(moseoverSquareEvent);
     }
     onMouseLeave(e: Event): void {
         // Do not fire this event if we are dragging a piece
@@ -578,17 +596,16 @@ export class ChessBoard implements OnInit, OnDestroy {
         const piece = this.pieces.hasOwnProperty(square) && this.pieces[square]!;
 
         // execute their function
-        this.dispatchEvent(
-            new CustomEvent("mouseout-square", {
-                bubbles: true,
-                detail: {
-                    square,
-                    piece,
-                    position: deepCopy(this.pieces),
-                    orientation: this.orientation
-                }
-            })
-        );
+        const mouseoutSquareEvent = new CustomEvent("mouseout-square", {
+            bubbles: true,
+            detail: {
+                square,
+                piece,
+                position: deepCopy(this.pieces),
+                orientation: this.orientation
+            }
+        });
+        this.mouseoutSquare$.emit(mouseoutSquareEvent);
     }
     private _mousemoveWindow = (e: MouseEvent | TouchEvent) => {
         // Do nothing if we are not dragging a piece
@@ -624,7 +641,7 @@ export class ChessBoard implements OnInit, OnDestroy {
             }
         });
         this.dragStart$.emit(dragStartEvent);
-        this.dispatchEvent(dragStartEvent);
+
         if (dragStartEvent.defaultPrevented) {
             return;
         }
@@ -680,7 +697,6 @@ export class ChessBoard implements OnInit, OnDestroy {
             }
         });
         this.dragMove$.emit(dragMoveEvent);
-        this.dispatchEvent(dragMoveEvent);
 
         // update state
         this._dragState.location = location;
@@ -734,7 +750,6 @@ export class ChessBoard implements OnInit, OnDestroy {
             }
         });
         this.drop$.emit(dropEvent);
-        this.dispatchEvent(dropEvent);
 
         this._highlightedSquares.clear();
 
@@ -769,9 +784,8 @@ export class ChessBoard implements OnInit, OnDestroy {
                 value: newPos,
                 oldValue: oldPos
             }
-        })
-        this.changed$.emit(changeEvent)
-        this.dispatchEvent(changeEvent);
+        });
+        this.changed$.emit(changeEvent);
 
         // update state
         this.foobar(position);
@@ -827,9 +841,8 @@ export class ChessBoard implements OnInit, OnDestroy {
                             position: deepCopy(this.pieces),
                             orientation: this.orientation
                         }
-                    })
+                    });
                     this.snapbackEnd$.emit(snapbackEndEvent);
-                    this.dispatchEvent(snapbackEndEvent);
                 };
                 const draggedPieceElement = document.querySelector('[part~="dragged-piece"]');
                 if (draggedPieceElement) {
@@ -914,7 +927,6 @@ export class ChessBoard implements OnInit, OnDestroy {
                         }
                     });
                     this.snapEnd$.emit(snapEndEvent);
-                    this.dispatchEvent(snapEndEvent);
                 };
                 // Not as efficient as coming through shadowRoot...
                 const draggedPieceElement = document.querySelector('[part~="dragged-piece"]');
@@ -1025,7 +1037,6 @@ export class ChessBoard implements OnInit, OnDestroy {
                     }
                 });
                 this.moveEnd$.emit(moveEndEvent);
-                this.dispatchEvent(moveEndEvent);
             }
         };
         document.addEventListener("transitionend", transitionEndListener);
@@ -1064,19 +1075,6 @@ export class ChessBoard implements OnInit, OnDestroy {
         this.requestUpdate();
     }
 
-    // -------------------------------------------------------------------------
-    // Validation / Errors
-    // -------------------------------------------------------------------------
-
-    private _error(code: number, msg: string, _obj?: unknown) {
-        const errorText = `Chessboard Error ${code} : ${msg}`;
-        this.dispatchEvent(
-            new ErrorEvent("error", {
-                message: errorText
-            })
-        );
-        return new Error(errorText);
-    }
     requestUpdate(hint?: string): void {
         // TODO: Probably only needed for templated components.
         // However, this also gives us an opportunity to drag the piece.
@@ -1102,9 +1100,6 @@ export class ChessBoard implements OnInit, OnDestroy {
                 }
             }
         }
-    }
-    dispatchEvent(e: Event): void {
-        this.ee.emit(e);
     }
 
     is_dragging(): boolean {
@@ -1179,6 +1174,13 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
         return styles;
     }
+    dragged_piece(): string | undefined {
+        if (this._dragState) {
+            return this._dragState.piece;
+        } else {
+            return void 0;
+        }
+    }
 
     dragged_piece_left(): string | undefined {
         if (this._dragState) {
@@ -1192,8 +1194,7 @@ export class ChessBoard implements OnInit, OnDestroy {
                     return void 0;
                 }
             }
-        }
-        else {
+        } else {
             return void 0;
         }
     }
@@ -1209,8 +1210,7 @@ export class ChessBoard implements OnInit, OnDestroy {
                     return void 0;
                 }
             }
-        }
-        else {
+        } else {
             return void 0;
         }
     }
@@ -1226,8 +1226,7 @@ export class ChessBoard implements OnInit, OnDestroy {
                     return void 0;
                 }
             }
-        }
-        else {
+        } else {
             return void 0;
         }
     }
@@ -1243,8 +1242,7 @@ export class ChessBoard implements OnInit, OnDestroy {
                     return void 0;
                 }
             }
-        }
-        else {
+        } else {
             return void 0;
         }
     }

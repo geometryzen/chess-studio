@@ -15,7 +15,7 @@ const BOTTOM = RIGHT;
 const BOARD_SIZE = RIGHT - LEFT;
 const SQUARE_SIZE = BOARD_SIZE / 8;
 
-export class ChessPiece { }
+export class ChessPiece {}
 
 export class ChessBoard {
     #board: Board;
@@ -43,9 +43,9 @@ export class ChessBoard {
             }
         }
 
-        const pawn = new Group(this.#board)
-        pawn.matrix
-        const path = new Path(this.#board, [])
+        const pawn = new Group(this.#board);
+        pawn.matrix;
+        const path = new Path(this.#board, []);
         pawn.add(path);
         this.#board.add(pawn);
     }

@@ -13,7 +13,7 @@ import { ifDefined } from "lit/directives/if-defined.js";
 
 import { deepCopy, interpolateTemplate, isString, isFunction } from "./utils.js";
 import { styles } from "./chessboard-styles.js";
-import { objToFen, findClosestPiece, calculatePositionFromMoves, validMove, validSquare, validPositionObject, PositionObject, Position, Piece, COLUMNS, normalizePozition, getSquareColor, blackPieces, whitePieces } from "./chess-utils.js";
+import { objToFen, findClosestPiece, calculatePositionFromMoves, validMove, validSquare, validPositionObject, PositionObject, Position, Piece, COLUMNS, normalizePosition, getSquareColor, blackPieces, whitePieces } from "./chess-utils.js";
 import { renderPiece as renderWikipediaSVGPiece } from "./wikipedia-pieces-svg.js";
 
 export { fenToObj, objToFen } from "./chess-utils.js";
@@ -270,7 +270,7 @@ export class ChessBoardElement extends LitElement {
      * animations, use the `setPosition` method.
      */
     @property({
-        converter: (value: string | null) => normalizePozition(value)
+        converter: (value: string | null) => normalizePosition(value)
     })
     get position(): PositionObject {
         return this._currentPosition;
@@ -795,7 +795,7 @@ export class ChessBoardElement extends LitElement {
      *   show the new position instantly.
      */
     setPosition(position: Position, useAnimation = true) {
-        position = normalizePozition(position);
+        position = normalizePosition(position);
 
         // validate position object
         if (!validPositionObject(position)) {

@@ -5,7 +5,8 @@
     <chessstudio-board id="board-ux" [orientation]="orientation" position="start" draggable-pieces
         (changed)="onChange($event)" (drag-start)="onDragStart($event)" (drag-move)="onDragMove($event)"
         (drop)="onDropEvent($event)" (snap-end)="onSnapEndEvent($event)" (snapback-end)="onSnapbackEndEvent($event)"
-        (move-end)="onMoveEndEvent($event)"></chessstudio-board>
+        (move-end)="onMoveEndEvent($event)" (mouseover-square)="onMouseoverSquareEvent($event)"
+        (mouseout-square)="onMouseoutSquareEvent($event)"></chessstudio-board>
 </div>
 <!--
 <div id='my-board' class='board' style='width:480px; height:480px'></div>
