@@ -83,6 +83,8 @@ async function createWindow() {
     win.on("closed", () => {
         win = null;
     });
+
+    win.webContents.openDevTools();
 }
 
 ipcMain.on("dev-tools", () => {

@@ -487,8 +487,7 @@ export class ChessBoardElement extends LitElement {
             <div></div>
         `;
     }
-
-    private _renderDraggedPiece() {
+    private computeDraggedPieceStyleDeclaration(): Partial<CSSStyleDeclaration> {
         const styles: Partial<CSSStyleDeclaration> = {
             height: `${this._squareSize}px`,
             width: `${this._squareSize}px`
@@ -534,7 +533,11 @@ export class ChessBoardElement extends LitElement {
                 });
             }
         }
+        return styles;
+    }
 
+    private _renderDraggedPiece() {
+        const styles = this.computeDraggedPieceStyleDeclaration();
         return this._renderPiece(this._dragState?.piece ?? "", styles, false, undefined, "dragged-piece");
     }
 

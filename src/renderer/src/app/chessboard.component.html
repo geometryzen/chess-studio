@@ -12,9 +12,19 @@
         <div part="notation alpha">{{file(x)}}</div>
         }
         @if (pieces[square(x,y)]) {
+        @if (is_dragged_square(square(x,y))) {
+        }
+        @else {
         <chess-piece [piece]="pieces[square(x,y)]"></chess-piece>
+        }
         }
     </div>
     }
+    }
+</div>
+<div id="dragged-pieces" style="width:60px; height: 60px;">
+    @if (is_dragging()) {
+    <chess-piece piece="wP" dragged left="{{dragged_piece_left()}}" top="{{dragged_piece_top()}}"
+        width="{{dragged_piece_width()}}" height="{{dragged_piece_height()}}"></chess-piece>
     }
 </div>

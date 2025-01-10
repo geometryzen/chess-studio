@@ -2,9 +2,14 @@
     <chess-board id="board-ui" [orientation]="orientation" position="start" draggable-pieces></chess-board>
 </div>
 <div>
-    <chessstudio-board id="board-ux" [orientation]="orientation" [position]="position"
-        draggable-pieces></chessstudio-board>
+    <chessstudio-board id="board-ux" [orientation]="orientation" position="start" draggable-pieces
+        (changed)="onChange($event)" (drag-start)="onDragStart($event)" (drag-move)="onDragMove($event)"
+        (drop)="onDropEvent($event)" (snap-end)="onSnapEndEvent($event)" (snapback-end)="onSnapbackEndEvent($event)"
+        (move-end)="onMoveEndEvent($event)"></chessstudio-board>
 </div>
+<!--
+<div id='my-board' class='board' style='width:480px; height:480px'></div>
+-->
 <div>
     <div id="status">{{status}}</div>
 </div>
