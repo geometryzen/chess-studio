@@ -1,7 +1,9 @@
 import { booleanAttribute, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output } from "@angular/core";
 import { fenToObj } from "chessboard-element";
 import { calculatePositionFromMoves, findClosestPiece, normalizePosition, objToFen, Piece, Position, PositionObject, validMove, validPositionObject, validSquare } from "src/libs/chessboard/chess-utils";
-import { deepCopy } from "src/libs/chessboard/utils";
+import { copy_position } from "src/libs/chessboard/copy_position";
+import { different_positions } from "src/libs/chessboard/equal_positions";
+import { update_position_source_target } from "src/libs/chessboard/update_position_source_target";
 import { ChessPiece } from "./chesspiece.component";
 
 type Coord = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -226,13 +228,14 @@ export class ChessBoard implements OnInit, OnDestroy {
     set position(position: string) {
         const pieces = fenToObj(position);
         if (pieces) {
-            this.foobar(pieces);
+            this.#set_current_position(pieces);
+            // this.foobar(pieces);
         } else {
             // console.lg(`${position} is NOT a valid position`)
         }
     }
 
-    readonly pieces: { [square: string]: string } = {};
+    readonly pieces: PositionObject = {};
     @Input() orientation: "white" | "black" = "white";
     @Input({ alias: "draggable-pieces", transform: booleanAttribute }) draggablePieces: boolean = false;
     @Input({ alias: "spare-pieces", transform: booleanAttribute }) sparePieces: boolean = false;
@@ -273,7 +276,7 @@ export class ChessBoard implements OnInit, OnDestroy {
     dropOffBoard: OffBoardAction = "snapback";
     // I'm not sure whether these can be private?
     // Don't really want emit to be part of the public API.
-    @Output("changed") changed$ = new EventEmitter<ChangeEvent>();
+    @Output("changed") private changedEvents$ = new EventEmitter<ChangeEvent>();
     @Output("drag-start") dragStart$ = new EventEmitter<DragStartEvent>();
     @Output("drag-move") dragMove$ = new EventEmitter<DragMoveEvent>();
     @Output("drop") drop$ = new EventEmitter<DropEvent>();
@@ -332,17 +335,17 @@ export class ChessBoard implements OnInit, OnDestroy {
         const positionObj = normalizePosition(position);
 
         // validate position object
-        if (!validPositionObject(positionObj)) {
+        if (validPositionObject(positionObj)) {
+            if (useAnimation) {
+                // start the animations
+                const animations = this._calculateAnimations(this.pieces, positionObj);
+                this._doAnimations(animations, this.pieces, positionObj);
+            }
+            this.#set_current_position(positionObj);
+            this.requestUpdate();
+        } else {
             throw new Error("Invalid position", positionObj);
         }
-
-        if (useAnimation) {
-            // start the animations
-            const animations = this._calculateAnimations(this.pieces, positionObj);
-            this._doAnimations(animations, this.pieces, positionObj);
-        }
-        this._setCurrentPosition(positionObj);
-        this.requestUpdate();
     }
     /**
      * Returns the current position as a FEN string.
@@ -395,7 +398,7 @@ export class ChessBoard implements OnInit, OnDestroy {
 
             // skip invalid arguments
             if (!validMove(arg)) {
-                throw new Error("Invalid move", arg)
+                throw new Error("Invalid move", arg);
             }
 
             const [from, to] = arg.split("-");
@@ -427,14 +430,6 @@ export class ChessBoard implements OnInit, OnDestroy {
         this.requestUpdate();
     }
 
-    foobar(pieces: PositionObject) {
-        for (const square of Object.keys(this.pieces)) {
-            delete this.pieces[square];
-        }
-        for (const square of Object.keys(pieces)) {
-            this.pieces[square] = pieces[square] as string;
-        }
-    }
     file(x: Coord): File {
         return this.orientation === "white" ? FILES[x] : FILES[7 - x];
     }
@@ -533,7 +528,6 @@ export class ChessBoard implements OnInit, OnDestroy {
     }
 
     _mousedownSquare(e: MouseEvent | TouchEvent): void {
-        console.log("onMouseDown")
         // do nothing if we're not draggable. sparePieces implies draggable
         if (!this.draggablePieces && !this.sparePieces) {
             return;
@@ -542,7 +536,6 @@ export class ChessBoard implements OnInit, OnDestroy {
         // do nothing if there is no piece on this square
         const squareEl = e.currentTarget as HTMLElement;
         const square = squareEl.getAttribute("data-square");
-        console.log(`data-square: ${square}`);
         if (square === null || !this.pieces.hasOwnProperty(square)) {
             return;
         }
@@ -551,7 +544,6 @@ export class ChessBoard implements OnInit, OnDestroy {
         this._beginDraggingPiece(square, this.pieces[square]!, pos.clientX, pos.clientY);
     }
     _mousedownSparePiece(e: MouseEvent | TouchEvent) {
-        console.log("_mousedownSparePiece")
         // do nothing if sparePieces is not enabled
         if (!this.sparePieces) {
             return;
@@ -560,7 +552,6 @@ export class ChessBoard implements OnInit, OnDestroy {
         const pieceEl = sparePieceContainerEl.querySelector("[part~=piece]");
         //
         const piece = pieceEl!.getAttribute("piece")!;
-        console.log("piece", piece);
         e.preventDefault();
         const pos = e instanceof MouseEvent ? e : e.changedTouches[0];
         this._beginDraggingPiece("spare", piece, pos.clientX, pos.clientY);
@@ -588,7 +579,7 @@ export class ChessBoard implements OnInit, OnDestroy {
             detail: {
                 square,
                 piece,
-                position: deepCopy(this.pieces),
+                position: copy_position(this.pieces),
                 orientation: this.orientation
             }
         });
@@ -618,7 +609,7 @@ export class ChessBoard implements OnInit, OnDestroy {
             detail: {
                 square,
                 piece,
-                position: deepCopy(this.pieces),
+                position: copy_position(this.pieces),
                 orientation: this.orientation
             }
         });
@@ -653,7 +644,7 @@ export class ChessBoard implements OnInit, OnDestroy {
             detail: {
                 source,
                 piece,
-                position: deepCopy(this.pieces),
+                position: copy_position(this.pieces),
                 orientation: this.orientation
             }
         });
@@ -709,7 +700,7 @@ export class ChessBoard implements OnInit, OnDestroy {
                 oldLocation: this.#dragState.location,
                 source: this.#dragState.source,
                 piece: this.#dragState.piece,
-                position: deepCopy(this.pieces),
+                position: copy_position(this.pieces),
                 orientation: this.orientation
             }
         });
@@ -730,8 +721,8 @@ export class ChessBoard implements OnInit, OnDestroy {
             action = this.dropOffBoard === "trash" ? "trash" : "snapback";
         }
 
-        const newPosition = deepCopy(this.pieces);
-        const oldPosition = deepCopy(this.pieces);
+        const newPosition = copy_position(this.pieces);
+        const oldPosition = copy_position(this.pieces);
 
         // source piece is a spare piece and position is on the board
         if (source === "spare" && validSquare(location)) {
@@ -785,27 +776,21 @@ export class ChessBoard implements OnInit, OnDestroy {
         // Render the final non-dragging state
         this.requestUpdate();
     }
-    private _setCurrentPosition(position: PositionObject) {
-        const oldPos = deepCopy(this.pieces);
-        const newPos = deepCopy(position);
-        const oldFen = objToFen(oldPos);
-        const newFen = objToFen(newPos);
+    #set_current_position(pieces: Readonly<PositionObject>): void {
+        if (different_positions(this.pieces, pieces)) {
 
-        // do nothing if no change in position
-        if (oldFen === newFen) return;
+            const oldValue = copy_position(this.pieces);
 
-        // Fire change event
-        const changeEvent = new CustomEvent("change", {
-            bubbles: true,
-            detail: {
-                value: newPos,
-                oldValue: oldPos
-            }
-        });
-        this.changed$.emit(changeEvent);
+            update_position_source_target(pieces, this.pieces);
 
-        // update state
-        this.foobar(position);
+            this.changedEvents$.emit(new CustomEvent("change", {
+                bubbles: true,
+                detail: {
+                    value: copy_position(pieces),
+                    oldValue
+                }
+            }));
+        }
     }
 
     private _isXYOnSquare(x: number, y: number): Location | "offboard" {
@@ -855,7 +840,7 @@ export class ChessBoard implements OnInit, OnDestroy {
                         detail: {
                             piece: piece,
                             square: source,
-                            position: deepCopy(this.pieces),
+                            position: copy_position(this.pieces),
                             orientation: this.orientation
                         }
                     });
@@ -874,9 +859,9 @@ export class ChessBoard implements OnInit, OnDestroy {
         const { source, piece } = this.#dragState;
 
         // remove the source piece
-        const newPosition = deepCopy(this.pieces);
+        const newPosition = copy_position(this.pieces);
         delete newPosition[source];
-        this._setCurrentPosition(newPosition);
+        this.#set_current_position(newPosition);
 
         this.#dragState = {
             state: "trash",
@@ -910,10 +895,10 @@ export class ChessBoard implements OnInit, OnDestroy {
         const { source, piece } = this.#dragState;
 
         // update position
-        const newPosition = deepCopy(this.pieces);
+        const newPosition = copy_position(this.pieces);
         delete newPosition[source];
         newPosition[square] = piece;
-        this._setCurrentPosition(newPosition);
+        this.#set_current_position(newPosition);
 
         this.#dragState = {
             state: "snap",
@@ -960,10 +945,10 @@ export class ChessBoard implements OnInit, OnDestroy {
 
     // calculate an array of animations that need to happen in order to get
     // from pos1 to pos2
-    private _calculateAnimations(pos1: PositionObject, pos2: PositionObject): Animation[] {
-        // make copies of both
-        pos1 = deepCopy(pos1);
-        pos2 = deepCopy(pos2);
+    private _calculateAnimations(starting_position: Readonly<PositionObject>, ending_position: Readonly<PositionObject>): Animation[] {
+
+        const pos1 = copy_position(starting_position);
+        const pos2 = copy_position(ending_position);
 
         const animations: Animation[] = [];
         const squaresMovedTo: { [square: string]: boolean } = {};
@@ -1049,8 +1034,8 @@ export class ChessBoard implements OnInit, OnDestroy {
                 const moveEndEvent = new CustomEvent("move-end", {
                     bubbles: true,
                     detail: {
-                        oldPosition: deepCopy(oldPos),
-                        newPosition: deepCopy(newPos)
+                        oldPosition: copy_position(oldPos),
+                        newPosition: copy_position(newPos)
                     }
                 });
                 this.moveEnd$.emit(moveEndEvent);

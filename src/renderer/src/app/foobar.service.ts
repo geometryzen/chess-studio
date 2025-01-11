@@ -1,4 +1,5 @@
-import { Injectable } from "@angular/core";
+import { Injectable, NgZone } from "@angular/core";
+import { Observable } from "rxjs";
 
 export interface MoveCandidate {
     depth: number;
@@ -71,11 +72,20 @@ declare global {
     }
 }
 
+//
+// NgZone is used to ensure that the callback functions we register with the main thread are executed in the Angular zone.
+// This is necessary to ensure that Angular change detection takes place, updating the user interface.
+//
+// Note that with callbacks, there is no unregister or unsubscribe equivalent.
+// The use of Observable for callbacks at least hides that potential inside this service.
+// This works assuming that the client unsubscribes.
+//
+
 @Injectable({
     providedIn: "root"
 })
 export class FoobarService {
-    constructor() {}
+    constructor(private ngZone: NgZone) { }
 
     go(fen: string): Promise<void> {
         return window.foobar.go(fen);
@@ -85,9 +95,31 @@ export class FoobarService {
         return window.foobar.halt();
     }
 
+    get gameClear$(): Observable<void> {
+        return new Observable<void>((subscriber) => {
+            window.foobar.onGameClear(() => {
+                this.ngZone.run(function () {
+                    subscriber.next();
+                    // subscriber.complete();
+                });
+            });
+        });
+    }
+    get gameNew$(): Observable<void> {
+        return new Observable<void>((subscriber) => {
+            window.foobar.onNewGameClassic(() => {
+                this.ngZone.run(function () {
+                    subscriber.next();
+                    // subscriber.complete();
+                });
+            });
+        });
+    }
+    /*
     onGameClear(callback: () => void): void {
         window.foobar.onGameClear(callback);
     }
+    */
 
     onGameSetup(callback: () => void): void {
         window.foobar.onGameSetup(callback);
@@ -96,10 +128,11 @@ export class FoobarService {
     onGamePlay(callback: () => void): void {
         window.foobar.onGamePlay(callback);
     }
-
+    /*
     onNewGameClassic(callback: () => void): void {
         window.foobar.onNewGameClassic(callback);
     }
+    */
 
     onTreeRoot(callback: () => void): void {
         window.foobar.onTreeRoot(callback);
@@ -109,12 +142,27 @@ export class FoobarService {
         window.foobar.onTreeEnd(callback);
     }
 
+    get treeBackward$(): Observable<void> {
+        return new Observable<void>((subscriber) => {
+            window.foobar.onTreeBackward(() => {
+                this.ngZone.run(function () {
+                    subscriber.next();
+                    // subscriber.complete();
+                });
+            });
+        });
+    }
+
     onTreeBackward(callback: () => void): void {
-        window.foobar.onTreeBackward(callback);
+        window.foobar.onTreeBackward(() => {
+            this.ngZone.run(callback);
+        });
     }
 
     onTreeForward(callback: () => void): void {
-        window.foobar.onTreeForward(callback);
+        window.foobar.onTreeForward(() => {
+            this.ngZone.run(callback);
+        });
     }
 
     onBoardFlip(callback: () => void): void {

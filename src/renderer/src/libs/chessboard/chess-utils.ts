@@ -5,7 +5,8 @@
  * https://github.com/justinfagnani/chessboard-element/blob/master/LICENSE.md
  */
 
-import { isString, deepCopy } from "./utils.js";
+import { copy_position } from "./copy_position.js";
+import { isString } from "./utils.js";
 
 export type Piece = string;
 export type PositionObject = { [square: string]: Piece | undefined };
@@ -254,7 +255,7 @@ export const normalizePosition = (position: Position | null): PositionObject => 
 
     // start position
     if (isString(position) && position.toLowerCase() === "start") {
-        position = deepCopy(START_POSITION);
+        position = copy_position(START_POSITION);
     }
 
     // convert FEN to position object
@@ -334,8 +335,8 @@ export const findClosestPiece = (position: PositionObject, piece: string, square
 
 // given a position and a set of moves, return a new position
 // with the moves executed
-export const calculatePositionFromMoves = (position: PositionObject, moves: { [from: string]: string }) => {
-    const newPosition = deepCopy(position);
+export const calculatePositionFromMoves = (position: Readonly<PositionObject>, moves: { [from: string]: string }) => {
+    const newPosition = copy_position(position);
 
     for (const i in moves) {
         if (!moves.hasOwnProperty(i)) continue;

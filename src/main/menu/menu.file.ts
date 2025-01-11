@@ -36,6 +36,7 @@ function menu_item_game_new(win: BrowserWindow): MenuItemConstructorOptions {
 function menu_item_game_clear(win: BrowserWindow): MenuItemConstructorOptions {
     const items: MenuItemConstructorOptions = {
         label: "Clear",
+        accelerator: "CommandOrControl+M",
         click: () => {
             win.webContents.send(CHANNEL_ACTION_GAME_CLEAR);
         }

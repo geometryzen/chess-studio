@@ -15,7 +15,7 @@ export class ChessPiece implements OnInit, OnDestroy {
     @Input({ alias: "width" }) width: string | undefined;
     @Input({ alias: "height" }) height: string | undefined;
     ngOnInit(): void {
-        console.log(`ChessPiece.ngOnInit piece=${this.piece}`);
+        // console.lg(`ChessPiece.ngOnInit piece=${this.piece}`);
     }
     ngOnDestroy(): void {
         // console.lg("ChessPiece.ngOnDestroy");

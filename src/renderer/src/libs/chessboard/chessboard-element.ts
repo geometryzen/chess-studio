@@ -44,34 +44,34 @@ export type OffBoardAction = "trash" | "snapback";
 
 export type Animation =
     | {
-        type: "move";
-        source: string;
-        destination: string;
-        piece: string;
-        square?: undefined;
-    }
+          type: "move";
+          source: string;
+          destination: string;
+          piece: string;
+          square?: undefined;
+      }
     | {
-        type: "move-start";
-        source: string;
-        destination: string;
-        piece: string;
-        square?: undefined;
-    }
+          type: "move-start";
+          source: string;
+          destination: string;
+          piece: string;
+          square?: undefined;
+      }
     | {
-        type: "add";
-        square: string;
-        piece: string;
-    }
+          type: "add";
+          square: string;
+          piece: string;
+      }
     | {
-        type: "clear";
-        square: string;
-        piece: string;
-    }
+          type: "clear";
+          square: string;
+          piece: string;
+      }
     | {
-        type: "add-start";
-        square: string;
-        piece: string;
-    };
+          type: "add-start";
+          square: string;
+          piece: string;
+      };
 
 type DraggingDragState = {
     state: "dragging";
@@ -462,9 +462,9 @@ export class ChessBoardElement extends LitElement {
             <div
                 id="dragged-pieces"
                 style=${styleMap({
-            width: `${this._squareSize}px`,
-            height: `${this._squareSize}px`
-        })}
+                    width: `${this._squareSize}px`,
+                    height: `${this._squareSize}px`
+                })}
             >
                 ${this._renderDraggedPiece()}
             </div>

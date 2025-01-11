@@ -78,7 +78,7 @@ export class AppComponent implements OnInit, OnDestroy {
                 this.onMoveEndEvent(event);
             });
         }
-        this.controller.onNewGameClassic(() => {
+        this.controller.gameNew$.subscribe(() => {
             this.tree.reset();
             this.position = this.tree.fen();
             if (this.boardA) {
@@ -89,6 +89,18 @@ export class AppComponent implements OnInit, OnDestroy {
             }
             this.exitSetupMode();
         });
+        this.controller.gameClear$.subscribe(() => {
+            this.tree.clear();
+            this.position = this.tree.fen();
+            if (this.boardA) {
+                this.boardA.clear(this.useAnimation);
+            }
+            if (this.boardB) {
+                this.boardB.clear(this.useAnimation);
+            }
+            this.enterSetupMode();
+        });
+        /*
         this.controller.onGameClear(() => {
             this.tree.clear();
             this.position = this.tree.fen();
@@ -100,6 +112,7 @@ export class AppComponent implements OnInit, OnDestroy {
             }
             this.enterSetupMode();
         });
+        */
         this.controller.onGameSetup(() => {
             this.enterSetupMode();
         });
@@ -112,9 +125,14 @@ export class AppComponent implements OnInit, OnDestroy {
         this.controller.onTreeEnd(() => {
             this.tree.goto_end();
         });
+        this.controller.treeBackward$.subscribe(() => {
+            this.tree.prev();
+        });
+        /*
         this.controller.onTreeBackward(() => {
             this.tree.prev();
         });
+        */
         this.controller.onTreeForward(() => {
             this.tree.next();
         });
@@ -154,8 +172,8 @@ export class AppComponent implements OnInit, OnDestroy {
                 } else {
                     // console.lg("There is no search in progress");
                 }
-            } catch (e) {
-                // console.lg(`${e}`);
+            } catch (ex) {
+                console.log(`${ex}`);
             }
         });
         this.controller.onAnalysisGo(async () => {
@@ -358,8 +376,7 @@ export class AppComponent implements OnInit, OnDestroy {
         */
     }
 
-    onChange(event: ChangeEvent): void {
-    }
+    onChange(event: ChangeEvent): void { }
     onDragStart(event: DragStartEvent): void {
         const { source, piece, position, orientation } = event.detail;
         if (this.is_setup_mode) {
@@ -384,8 +401,7 @@ export class AppComponent implements OnInit, OnDestroy {
             }
         }
     }
-    onDragMove(event: DragMoveEvent): void {
-    }
+    onDragMove(event: DragMoveEvent): void { }
     onDropEvent(event: DropEvent): void {
         const { source, target, piece, newPosition, oldPosition, orientation, setAction } = event.detail;
         if (this.is_setup_mode) {
@@ -427,8 +443,7 @@ export class AppComponent implements OnInit, OnDestroy {
                 if (position) {
                     this.position = position;
                 }
-            }
-            else if (this.boardB) {
+            } else if (this.boardB) {
                 const position = this.boardB.fen();
                 if (position) {
                     this.position = position;
@@ -440,12 +455,8 @@ export class AppComponent implements OnInit, OnDestroy {
             this.position = this.tree.fen();
         }
     }
-    onSnapbackEndEvent(event: SnapbackEndEvent): void {
-    }
-    onMoveEndEvent(event: MoveEndEvent): void {
-    }
-    onMouseoverSquareEvent(event: MouseoverSquareEvent): void {
-    }
-    onMouseoutSquareEvent(event: MouseoutSquareEvent): void {
-    }
+    onSnapbackEndEvent(event: SnapbackEndEvent): void { }
+    onMoveEndEvent(event: MoveEndEvent): void { }
+    onMouseoverSquareEvent(event: MouseoverSquareEvent): void { }
+    onMouseoutSquareEvent(event: MouseoutSquareEvent): void { }
 }
