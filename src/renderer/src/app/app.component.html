@@ -1,15 +1,16 @@
 <div>
-    <chess-board id="board-ui" [orientation]="orientation" position="start" draggable-pieces></chess-board>
+    <chess-board id="board-ui" [orientation]="orientation" position="start" draggable-pieces move-speed="200"
+        snapback-speed="60" snap-speed="30"></chess-board>
 </div>
-
 
 <div>
     <chessstudio-board id="board-ux" [orientation]="orientation" position="start" draggable-pieces
         (changed)="onChange($event)" (drag-start)="onDragStart($event)" (drag-move)="onDragMove($event)"
         (drop)="onDropEvent($event)" (snap-end)="onSnapEndEvent($event)" (snapback-end)="onSnapbackEndEvent($event)"
         (move-end)="onMoveEndEvent($event)" (mouseover-square)="onMouseoverSquareEvent($event)"
-        (mouseout-square)="onMouseoutSquareEvent($event)"></chessstudio-board>
+        (mouseout-square)="onMouseoutSquareEvent($event)" move-speed="200" snap-speed="30"></chessstudio-board>
 </div>
+
 <!--
 <div id='my-board' class='board' style='width:480px; height:480px'></div>
 -->

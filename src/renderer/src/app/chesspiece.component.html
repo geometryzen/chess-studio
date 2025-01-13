@@ -1,4 +1,5 @@
-<div [part]="dragged ? 'piece dragged-piece':'piece'" [attr.piece]="piece" [style]="style()">
+<div [part]="dragged ? 'piece dragged-piece':'piece'" [attr.piece]="piece" [style]="style()"
+    (transitionend)="on_transitionend($event)">
     <svg viewBox="0 0 45 45" xmlns='http://www.w3.org/2000/svg'>
         @if (piece==="bB") {
         <g

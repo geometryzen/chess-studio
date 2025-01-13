@@ -38,9 +38,11 @@
         }
         @if (pieces[square(x,y)]) {
         @if (is_dragged_square(square(x,y))) {
+        <!-- The square is the source of a drag operation -->
         }
         @else {
-        <chess-piece [piece]="pieces[square(x,y)]"></chess-piece>
+        <chess-piece [piece]="pieces[square(x,y)]" [piece-styles]="animation_style(square(x,y))"
+            (transition_end)="on_piece_transitionend()"></chess-piece>
         }
         }
     </div>
@@ -72,8 +74,7 @@
 </div>
 }
 <div id="dragged-pieces" style="width:60px; height: 60px;">
-    @if (is_dragging()) {
-    <chess-piece piece="{{dragged_piece()}}" dragged left="{{dragged_piece_left()}}" top="{{dragged_piece_top()}}"
-        width="{{dragged_piece_width()}}" height="{{dragged_piece_height()}}"></chess-piece>
+    @if (is_drag_state()) {
+    <chess-piece piece="{{dragged_piece()}}" dragged [piece-styles]="dragged_piece_styles()"></chess-piece>
     }
 </div>

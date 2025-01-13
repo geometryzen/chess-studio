@@ -1,6 +1,7 @@
-import { booleanAttribute, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output } from "@angular/core";
+import { booleanAttribute, Component, ElementRef, EventEmitter, Input, numberAttribute, OnDestroy, OnInit, Output } from "@angular/core";
 import { fenToObj } from "chessboard-element";
-import { calculatePositionFromMoves, findClosestPiece, normalizePosition, objToFen, Piece, Position, PositionObject, validMove, validPositionObject, validSquare } from "src/libs/chessboard/chess-utils";
+import { Animation, calculateAnimations } from "src/libs/chessboard/calculate_animations";
+import { calculatePositionFromMoves, normalizePosition, objToFen, Piece, Position, PositionObject, validMove, validPositionObject, validSquare } from "src/libs/chessboard/chess-utils";
 import { copy_position } from "src/libs/chessboard/copy_position";
 import { different_positions } from "src/libs/chessboard/equal_positions";
 import { update_position_source_target } from "src/libs/chessboard/update_position_source_target";
@@ -15,49 +16,24 @@ const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 // default animation speeds
 const DEFAULT_APPEAR_SPEED = 200;
 const DEFAULT_MOVE_SPEED = 200;
-const DEFAULT_SNAPBACK_SPEED = 60;
 const DEFAULT_SNAP_SPEED = 30;
+const DEFAULT_SNAPBACK_SPEED = 60;
 const DEFAULT_TRASH_SPEED = 100;
 
 export type AnimationSpeed = "fast" | "slow" | number;
 
 export type SquareColor = "black" | "white";
 export type Offset = { top: number; left: number };
+// TODO: It would be nice for this to be restricted to the 64 squares.
 export type Location = string;
-export type Action = OffBoardAction | "drop";
 export type OffBoardAction = "trash" | "snapback";
+export type Action = OffBoardAction | "drop";
 
-export type Animation =
-    | {
-        type: "move";
-        source: string;
-        destination: string;
-        piece: string;
-        square?: undefined;
-    }
-    | {
-        type: "move-start";
-        source: string;
-        destination: string;
-        piece: string;
-        square?: undefined;
-    }
-    | {
-        type: "add";
-        square: string;
-        piece: string;
-    }
-    | {
-        type: "clear";
-        square: string;
-        piece: string;
-    }
-    | {
-        type: "add-start";
-        square: string;
-        piece: string;
-    };
-
+//
+// "dragging" can be followed by "snap" meaning that the piece snaps into the location where dropped.
+//                               "snapback" meaning that the piece returns to the source location.
+//                               "trash" meaning that the piece is removed from the board.
+//
 type DraggingDragState = {
     state: "dragging";
     x: number;
@@ -65,6 +41,12 @@ type DraggingDragState = {
     piece: Piece;
     location: Location | "offboard" | "spare";
     source: Location | "spare";
+};
+type SnapDragState = {
+    state: "snap";
+    piece: Piece;
+    location: Location;
+    source: Location;
 };
 type SnapbackDragState = {
     state: "snapback";
@@ -76,12 +58,6 @@ type TrashDragState = {
     x: number;
     y: number;
     piece: Piece;
-    source: Location;
-};
-type SnapDragState = {
-    state: "snap";
-    piece: Piece;
-    location: Location;
     source: Location;
 };
 
@@ -162,6 +138,9 @@ export interface DropEvent extends Event {
         newPosition: PositionObject;
         oldPosition: PositionObject;
         orientation: "white" | "black";
+        /**
+         * The default action will be to allow the drop.
+         */
         setAction: (action: "snapback" | "trash") => void;
     };
 }
@@ -239,11 +218,12 @@ export class ChessBoard implements OnInit, OnDestroy {
     @Input() orientation: "white" | "black" = "white";
     @Input({ alias: "draggable-pieces", transform: booleanAttribute }) draggablePieces: boolean = false;
     @Input({ alias: "spare-pieces", transform: booleanAttribute }) sparePieces: boolean = false;
-    @Input({ alias: "move-speed" }) moveSpeed: AnimationSpeed = DEFAULT_MOVE_SPEED;
-    @Input({ alias: "trash-speed" }) trashSpeed: AnimationSpeed = DEFAULT_TRASH_SPEED;
-    @Input({ alias: "appear-speed" }) appearSpeed: AnimationSpeed = DEFAULT_APPEAR_SPEED;
-    @Input({ alias: "snap-speed" }) snapSpeed: AnimationSpeed = DEFAULT_SNAP_SPEED;
-    @Input({ alias: "snapback-speed" }) snapbackSpeed: AnimationSpeed = DEFAULT_SNAPBACK_SPEED;
+    // TODO: Some work required to support "fast" and "slow"
+    @Input({ alias: "move-speed", transform: numberAttribute }) moveSpeed: AnimationSpeed = DEFAULT_MOVE_SPEED;
+    @Input({ alias: "trash-speed", transform: numberAttribute }) trashSpeed: AnimationSpeed = DEFAULT_TRASH_SPEED;
+    @Input({ alias: "appear-speed", transform: numberAttribute }) appearSpeed: AnimationSpeed = DEFAULT_APPEAR_SPEED;
+    @Input({ alias: "snap-speed", transform: numberAttribute }) snapSpeed: AnimationSpeed = DEFAULT_SNAP_SPEED;
+    @Input({ alias: "snapback-speed", transform: numberAttribute }) snapbackSpeed: AnimationSpeed = DEFAULT_SNAPBACK_SPEED;
 
     #dragState?: DragState;
     /**
@@ -251,7 +231,7 @@ export class ChessBoard implements OnInit, OnDestroy {
      *
      * If the transition-property is removed or display is set to none, then the event will not be generated.
      */
-    cssTransitionEnabled: boolean = false;
+    cssTransitionEnabled: boolean = true;
 
     private get _squareSize() {
         // Note: this isn't cached, but is called during user interactions, so we
@@ -270,7 +250,10 @@ export class ChessBoard implements OnInit, OnDestroy {
         // TODO: squareId needs to be more unique since we're no longer working from just the shadow root.
         return document.getElementById(sparePieceId(piece))!;
     }
-    private _highlightedSquares = new Set();
+    private readonly _highlightedSquares = new Set();
+    /**
+     * A map from a square (Location) to an Animation.
+     */
     private _animations = new Map<Location, Animation>();
 
     dropOffBoard: OffBoardAction = "snapback";
@@ -280,6 +263,7 @@ export class ChessBoard implements OnInit, OnDestroy {
     @Output("drag-start") dragStart$ = new EventEmitter<DragStartEvent>();
     @Output("drag-move") dragMove$ = new EventEmitter<DragMoveEvent>();
     @Output("drop") drop$ = new EventEmitter<DropEvent>();
+    // Why is this called snap-end and not drop end maybe drop-snap-end and drop-snapback-end
     @Output("snap-end") snapEnd$ = new EventEmitter<SnapEndEvent>();
     @Output("snapback-end") snapbackEnd$ = new EventEmitter<SnapbackEndEvent>();
     @Output("move-end") moveEnd$ = new EventEmitter<MoveEndEvent>();
@@ -331,18 +315,17 @@ export class ChessBoard implements OnInit, OnDestroy {
      * @param useAnimation If `true`, animate to the new position. If `false`,
      *   show the new position instantly.
      */
-    setPosition(position: Position, useAnimation = true): void | never {
+    setPosition(position: Position, useAnimation: boolean): void | never {
+        // console.lg(`setPosition(position=${JSON.stringify(position)}, useAnimation=${useAnimation})`);
         const positionObj = normalizePosition(position);
 
         // validate position object
         if (validPositionObject(positionObj)) {
             if (useAnimation) {
-                // start the animations
-                const animations = this._calculateAnimations(this.pieces, positionObj);
+                const animations = calculateAnimations(this.pieces, positionObj);
                 this._doAnimations(animations, this.pieces, positionObj);
             }
             this.#set_current_position(positionObj);
-            this.requestUpdate();
         } else {
             throw new Error("Invalid position", positionObj);
         }
@@ -360,7 +343,7 @@ export class ChessBoard implements OnInit, OnDestroy {
      * @param useAnimation If `true`, animate to the new position. If `false`,
      *   show the new position instantly.
      */
-    start(useAnimation?: boolean) {
+    start(useAnimation: boolean) {
         this.setPosition("start", useAnimation);
     }
 
@@ -373,9 +356,10 @@ export class ChessBoard implements OnInit, OnDestroy {
      * @param useAnimation If `true`, animate to the new position. If `false`,
      *   show the new position instantly.
      */
-    clear(useAnimation?: boolean) {
+    clear(useAnimation: boolean) {
         this.setPosition({}, useAnimation);
         this._highlightedSquares.clear();
+        this._animations.clear();
     }
 
     /**
@@ -427,7 +411,6 @@ export class ChessBoard implements OnInit, OnDestroy {
      * the board accordingly.
      */
     resize() {
-        this.requestUpdate();
     }
 
     file(x: Coord): File {
@@ -442,36 +425,39 @@ export class ChessBoard implements OnInit, OnDestroy {
     squareColor(x: Coord, y: Coord): "white" | "black" {
         return (x + y) % 2 > 0 ? "black" : "white";
     }
+    /**
+     * Used by the template to determine how a square should be highlighted.
+     * The template is rather complex in computing the part attribute so maybe that should be a method itself
+     * @param square
+     * @returns
+     */
     highlight(square: string): "highlight" | "" {
         const isDragSource = square === this.#dragState?.source;
-        const animation = this._animations.get(square);
-        const highlight = isDragSource || this._highlightedSquares.has(square) ? "highlight" : "";
-        // const pieceStyles = this._getAnimationStyles(piece, animation);
-        // if (!piece && animation?.type === "clear") {
-        // Preserve the piece until the animation is complete
-        // piece = animation.piece;
-        //}
+        const highlight = (isDragSource || this._highlightedSquares.has(square)) ? "highlight" : "";
         return highlight;
     }
     ngOnInit(): void {
         // console.lg("ChessBoard.ngOnInit");
-        window.addEventListener("mousemove", this._mousemoveWindow);
-        window.addEventListener("mouseup", this._mouseupWindow);
-        window.addEventListener("touchmove", this._mousemoveWindow, {
+        // TODO: By using Observables wecan make the handlers into local functions, simplifying the API surface.
+        // const subscription = fromEvent(window, "touchmove", { passive: false }).subscribe(this.on_mousemove_window);
+        window.addEventListener("mousemove", this.#on_mousemove_window);
+        window.addEventListener("touchmove", this.#on_mousemove_window, {
             passive: false
         });
-        window.addEventListener("touchend", this._mouseupWindow, {
+        window.addEventListener("mouseup", this.#on_mouseup_window);
+        window.addEventListener("touchend", this.#on_mouseup_window, {
             passive: false
         });
     }
     ngOnDestroy(): void {
         // console.lg("ChessBoard.ngOnDestroy");
-        window.removeEventListener("mousemove", this._mousemoveWindow);
-        window.removeEventListener("mouseup", this._mouseupWindow);
-        window.removeEventListener("touchmove", this._mousemoveWindow);
-        window.removeEventListener("touchend", this._mouseupWindow);
+        window.removeEventListener("mousemove", this.#on_mousemove_window);
+        window.removeEventListener("mouseup", this.#on_mouseup_window);
+        window.removeEventListener("touchmove", this.#on_mousemove_window);
+        window.removeEventListener("touchend", this.#on_mouseup_window);
     }
     private _getAnimationStyles(piece: Piece | undefined, animation?: Animation | undefined): Partial<CSSStyleDeclaration> {
+        // console.lg(`_getAnimationStyles(piece=${piece}, animation=${JSON.stringify(animation)})`);
         if (animation) {
             if (piece && (animation.type === "move-start" || (animation.type === "add-start" && this.draggablePieces))) {
                 // Position the moved piece absolutely at the source
@@ -615,25 +601,21 @@ export class ChessBoard implements OnInit, OnDestroy {
         });
         this.mouseoutSquare$.emit(mouseoutSquareEvent);
     }
-    private _mousemoveWindow = (e: MouseEvent | TouchEvent) => {
-        // Do nothing if we are not dragging a piece
-        if (!(this.#dragState?.state === "dragging")) {
-            return;
+    #on_mousemove_window = (e: MouseEvent | TouchEvent) => {
+        if (this.is_dragging()) {
+            // Prevent screen from scrolling
+            e.preventDefault();
+            const pos = e instanceof MouseEvent ? e : e.changedTouches[0];
+            this._updateDraggedPiece(pos.clientX, pos.clientY);
         }
-        // Prevent screen from scrolling
-        e.preventDefault();
-        const pos = e instanceof MouseEvent ? e : e.changedTouches[0];
-        this._updateDraggedPiece(pos.clientX, pos.clientY);
     };
 
-    private _mouseupWindow = (e: MouseEvent | TouchEvent) => {
-        // Do nothing if we are not dragging a piece
-        if (!(this.#dragState?.state === "dragging")) {
-            return;
+    #on_mouseup_window = (e: MouseEvent | TouchEvent) => {
+        if (this.is_dragging()) {
+            const pos = e instanceof MouseEvent ? e : e.changedTouches[0];
+            const location = this.location_from_point(pos.clientX, pos.clientY);
+            this._stopDraggedPiece(location);
         }
-        const pos = e instanceof MouseEvent ? e : e.changedTouches[0];
-        const location = this._isXYOnSquare(pos.clientX, pos.clientY);
-        this._stopDraggedPiece(location);
     };
 
     private _beginDraggingPiece(source: string, piece: string, x: number, y: number) {
@@ -661,10 +643,9 @@ export class ChessBoard implements OnInit, OnDestroy {
             y,
             piece,
             // if the piece came from spare pieces, location is offboard
-            location: source === "spare" ? "offboard" : source,
+            location: (source === "spare") ? "offboard" : source,
             source
         };
-        this.requestUpdate();
     }
 
     private _updateDraggedPiece(x: number, y: number) {
@@ -674,9 +655,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         this.#dragState.x = x;
         this.#dragState.y = y;
 
-        this.requestUpdate();
-
-        const location = this._isXYOnSquare(x, y);
+        const location: Location | "offboard" = this.location_from_point(x, y);
 
         // do nothing more if the location has not changed
         if (location === this.#dragState.location) {
@@ -710,15 +689,19 @@ export class ChessBoard implements OnInit, OnDestroy {
         this.#dragState.location = location;
     }
 
+    /**
+     *
+     * @param location
+     */
     private async _stopDraggedPiece(location: Location | "offboard") {
-        // console.lg("stopDraggingPiece");
+        // console.lg(`stopDraggingPiece(location=${location})`);
         assertIsDragging(this.#dragState);
         const { source, piece } = this.#dragState;
 
         // determine what the action should be
         let action: Action = "drop";
         if (location === "offboard") {
-            action = this.dropOffBoard === "trash" ? "trash" : "snapback";
+            action = (this.dropOffBoard === "trash") ? "trash" : "snapback";
         }
 
         const newPosition = copy_position(this.pieces);
@@ -743,6 +726,7 @@ export class ChessBoard implements OnInit, OnDestroy {
 
         // Fire the drop event
         // Listeners can potentially change the drop action
+        // Notice that the changing of the action is synchronous
         const dropEvent = new CustomEvent("drop", {
             bubbles: true,
             detail: {
@@ -757,11 +741,13 @@ export class ChessBoard implements OnInit, OnDestroy {
                 }
             }
         });
+
         this.drop$.emit(dropEvent);
 
         this._highlightedSquares.clear();
 
         // do it!
+        // console.lg("action", action);
         if (action === "snapback") {
             await this._snapbackDraggedPiece();
         } else if (action === "trash") {
@@ -771,33 +757,32 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
 
         // clear state
+        // console.lg("clear drag state");
         this.#dragState = undefined;
-
-        // Render the final non-dragging state
-        this.requestUpdate();
     }
     #set_current_position(pieces: Readonly<PositionObject>): void {
         if (different_positions(this.pieces, pieces)) {
-
             const oldValue = copy_position(this.pieces);
 
             update_position_source_target(pieces, this.pieces);
 
-            this.changedEvents$.emit(new CustomEvent("change", {
-                bubbles: true,
-                detail: {
-                    value: copy_position(pieces),
-                    oldValue
-                }
-            }));
+            this.changedEvents$.emit(
+                new CustomEvent("change", {
+                    bubbles: true,
+                    detail: {
+                        value: copy_position(pieces),
+                        oldValue
+                    }
+                })
+            );
         }
     }
 
-    private _isXYOnSquare(x: number, y: number): Location | "offboard" {
+    private location_from_point(x: number, y: number): Location | "offboard" {
         // TODO: remove cast when TypeScript fixes ShadowRoot.elementsFromPoint
         const elements = document.elementsFromPoint(x, y);
         const squareEl = elements.find((e) => e.classList.contains("square"));
-        const square = squareEl === undefined ? "offboard" : (squareEl.getAttribute("data-square") as Location);
+        const square = (squareEl === undefined) ? "offboard" : (squareEl.getAttribute("data-square") as Location);
         return square;
     }
 
@@ -807,7 +792,6 @@ export class ChessBoard implements OnInit, OnDestroy {
         } else {
             this._highlightedSquares.delete(square);
         }
-        this.requestUpdate("_highlightedSquares");
     }
     private async _snapbackDraggedPiece() {
         assertIsDragging(this.#dragState);
@@ -825,8 +809,8 @@ export class ChessBoard implements OnInit, OnDestroy {
         };
 
         // Wait for a paint
-        this.requestUpdate();
         await new Promise((resolve) => setTimeout(resolve, 0));
+
         if (this.cssTransitionEnabled) {
             return new Promise<void>((resolve) => {
                 const transitionComplete = () => {
@@ -856,7 +840,7 @@ export class ChessBoard implements OnInit, OnDestroy {
 
     private async _trashDraggedPiece() {
         assertIsDragging(this.#dragState);
-        const { source, piece } = this.#dragState;
+        const { source, piece, location, state, x, y } = this.#dragState;
 
         // remove the source piece
         const newPosition = copy_position(this.pieces);
@@ -872,8 +856,8 @@ export class ChessBoard implements OnInit, OnDestroy {
         };
 
         // Wait for a paint
-        this.requestUpdate();
         await new Promise((resolve) => setTimeout(resolve, 0));
+
         if (this.cssTransitionEnabled) {
             return new Promise<void>((resolve) => {
                 const transitionComplete = () => {
@@ -881,6 +865,8 @@ export class ChessBoard implements OnInit, OnDestroy {
                         draggedPieceElement.removeEventListener("transitionend", transitionComplete);
                     }
                     resolve();
+
+                    // There is no event for signifying that the piece has been trashed.
                 };
                 const draggedPieceElement = document.querySelector('[part~="dragged-piece"]');
                 if (draggedPieceElement) {
@@ -890,7 +876,8 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
     }
 
-    private async _dropDraggedPieceOnSquare(square: string) {
+    private async _dropDraggedPieceOnSquare(square: string): Promise<void> {
+        // console.lg("dropDraggedPieceInSquare")
         assertIsDragging(this.#dragState);
         const { source, piece } = this.#dragState;
 
@@ -908,9 +895,10 @@ export class ChessBoard implements OnInit, OnDestroy {
         };
 
         // Wait for a paint
-        this.requestUpdate();
 
+        // If we don't wait for a paint...
         await new Promise((resolve) => setTimeout(resolve, 0));
+
         if (this.cssTransitionEnabled) {
             return new Promise<void>((resolve) => {
                 const transitionComplete = () => {
@@ -939,86 +927,11 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Animations
-    // -------------------------------------------------------------------------
-
-    // calculate an array of animations that need to happen in order to get
-    // from pos1 to pos2
-    private _calculateAnimations(starting_position: Readonly<PositionObject>, ending_position: Readonly<PositionObject>): Animation[] {
-
-        const pos1 = copy_position(starting_position);
-        const pos2 = copy_position(ending_position);
-
-        const animations: Animation[] = [];
-        const squaresMovedTo: { [square: string]: boolean } = {};
-
-        // remove pieces that are the same in both positions
-        for (const i in pos2) {
-            if (!pos2.hasOwnProperty(i)) continue;
-
-            if (pos1.hasOwnProperty(i) && pos1[i] === pos2[i]) {
-                delete pos1[i];
-                delete pos2[i];
-            }
-        }
-
-        // find all the "move" animations
-        for (const i in pos2) {
-            if (!pos2.hasOwnProperty(i)) continue;
-
-            const closestPiece = findClosestPiece(pos1, pos2[i]!, i);
-            if (closestPiece) {
-                animations.push({
-                    type: "move",
-                    source: closestPiece,
-                    destination: i,
-                    piece: pos2[i]!
-                });
-
-                delete pos1[closestPiece];
-                delete pos2[i];
-                squaresMovedTo[i] = true;
-            }
-        }
-
-        // "add" animations
-        for (const i in pos2) {
-            if (!pos2.hasOwnProperty(i)) {
-                continue;
-            }
-
-            animations.push({
-                type: "add",
-                square: i,
-                piece: pos2[i]!
-            });
-
-            delete pos2[i];
-        }
-
-        // "clear" animations
-        for (const i in pos1) {
-            if (!pos1.hasOwnProperty(i)) continue;
-
-            // do not clear a piece if it is on a square that is the result
-            // of a "move", ie: a piece capture
-            if (squaresMovedTo.hasOwnProperty(i)) continue;
-
-            animations.push({
-                type: "clear",
-                square: i,
-                piece: pos1[i]!
-            });
-
-            delete pos1[i];
-        }
-
-        return animations;
-    }
-
     // execute an array of animations
-    private async _doAnimations(animations: Animation[], oldPos: PositionObject, newPos: PositionObject) {
+    private async _doAnimations(animations: Animation[], oldPos: Readonly<PositionObject>, newPos: Readonly<PositionObject>) {
+        // console.lg("doAnimations()")
+        // console.lg(JSON.stringify(animations));
+        // console.lg("_animations 1", JSON.stringify([...this._animations.entries()]));
         if (animations.length === 0) {
             return;
         }
@@ -1030,7 +943,7 @@ export class ChessBoard implements OnInit, OnDestroy {
             if (numFinished === animations.length) {
                 document.removeEventListener("transitionend", transitionEndListener);
                 this._animations.clear();
-                this.requestUpdate();
+
                 const moveEndEvent = new CustomEvent("move-end", {
                     bubbles: true,
                     detail: {
@@ -1046,6 +959,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         // Render once with added pieces at opacity 0
         this._animations.clear();
         for (const animation of animations) {
+            // console.lg("animation", JSON.stringify(animation))
             if (animation.type === "add" || animation.type === "add-start") {
                 this._animations.set(animation.square, {
                     ...animation,
@@ -1062,7 +976,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
 
         // Wait for a paint
-        this.requestUpdate();
+        // console.lg("_animations 2", JSON.stringify([...this._animations.entries()]));
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         // Render again with the piece at opacity 1 with a transition
@@ -1074,34 +988,10 @@ export class ChessBoard implements OnInit, OnDestroy {
                 this._animations.set(animation.square, animation);
             }
         }
-        this.requestUpdate();
     }
 
-    requestUpdate(hint?: string): void {
-        // TODO: Probably only needed for templated components.
-        // However, this also gives us an opportunity to drag the piece.
-        if (this.#dragState) {
-            // console.lg(`requestUpdate(hint=${hint})`);
-            // console.lg(JSON.stringify(this._dragState, null, 2));
-            // These are the three parts of the drag state.
-            const piece = this.#dragState.piece;
-            const state = this.#dragState.state;
-            // console.lg(JSON.stringify(state, null, 2));
-            switch (state) {
-                case "dragging": {
-                    assertIsDragging(this.#dragState);
-                    const x = this.#dragState.x;
-                    const y = this.#dragState.y;
-                    // console.lg(JSON.stringify(this._dragState, null, 2));
-                    const square = this.#dragState.location;
-                    const animation = this._animations.get(square);
-                    const pieceStyles = this._getAnimationStyles(piece, animation);
-                    // We still don't have any pieceStyles, but we do know where the piece is.
-                    // console.lg(JSON.stringify(pieceStyles., null, 2));
-                    break;
-                }
-            }
-        }
+    is_drag_state(): boolean {
+        return !!this.#dragState;
     }
 
     is_dragging(): boolean {
@@ -1116,11 +1006,17 @@ export class ChessBoard implements OnInit, OnDestroy {
         return false;
     }
 
+    /**
+     * Determines if the square is one we are dragging from.
+     */
     is_dragged_square(square: Location): boolean {
         if (this.#dragState) {
             const state = this.#dragState.state;
             switch (state) {
-                case "dragging": {
+                case "dragging":
+                case "snap":
+                case "snapback":
+                case "trash": {
                     return this.#dragState.source === square;
                 }
             }
@@ -1128,10 +1024,35 @@ export class ChessBoard implements OnInit, OnDestroy {
         return false;
     }
 
-    private computeDraggedPieceStyleDeclaration(): Partial<CSSStyleDeclaration> {
+    animation_style(square: Location): Partial<CSSStyleDeclaration> {
+        const piece = this.pieces[square];
+        const animation = this._animations.get(square);
+        const more = this._getAnimationStyles(piece, animation);
+        // console.lg("more", JSON.stringify(more))
+        const styles: Partial<CSSStyleDeclaration> = {
+            opacity: "1",
+            transitionProperty: "none", // Maybe should be none?
+            transitionDuration: "0ms",
+            ...more
+        };
+        if (this.is_dragged_square(square)) {
+            styles.display = "none";
+        }
+        return styles;
+    }
+
+    /**
+     * TODO: I don't think this need the animation stuff?
+     * Unless it is for resetting purposes?
+     */
+    dragged_piece_styles(): Partial<CSSStyleDeclaration> {
         const styles: Partial<CSSStyleDeclaration> = {
             height: `${this._squareSize}px`,
-            width: `${this._squareSize}px`
+            width: `${this._squareSize}px`,
+            opacity: "1",
+            transitionProperty: "none",
+            transitionDuration: "0ms",
+            position: "absolute"
         };
         const dragState = this.#dragState;
         if (dragState !== undefined) {
@@ -1176,6 +1097,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
         return styles;
     }
+
     dragged_piece(): string | undefined {
         if (this.#dragState) {
             return this.#dragState.piece;
@@ -1184,68 +1106,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
     }
 
-    dragged_piece_left(): string | undefined {
-        if (this.#dragState) {
-            const state = this.#dragState.state;
-            switch (state) {
-                case "dragging": {
-                    const styles = this.computeDraggedPieceStyleDeclaration();
-                    return styles.left;
-                }
-                default: {
-                    return void 0;
-                }
-            }
-        } else {
-            return void 0;
-        }
-    }
-    dragged_piece_top(): string | undefined {
-        if (this.#dragState) {
-            const state = this.#dragState.state;
-            switch (state) {
-                case "dragging": {
-                    const styles = this.computeDraggedPieceStyleDeclaration();
-                    return styles.top;
-                }
-                default: {
-                    return void 0;
-                }
-            }
-        } else {
-            return void 0;
-        }
-    }
-    dragged_piece_height(): string | undefined {
-        if (this.#dragState) {
-            const state = this.#dragState.state;
-            switch (state) {
-                case "dragging": {
-                    const styles = this.computeDraggedPieceStyleDeclaration();
-                    return styles.height;
-                }
-                default: {
-                    return void 0;
-                }
-            }
-        } else {
-            return void 0;
-        }
-    }
-    dragged_piece_width(): string | undefined {
-        if (this.#dragState) {
-            const state = this.#dragState.state;
-            switch (state) {
-                case "dragging": {
-                    const styles = this.computeDraggedPieceStyleDeclaration();
-                    return styles.width;
-                }
-                default: {
-                    return void 0;
-                }
-            }
-        } else {
-            return void 0;
-        }
+    on_piece_transitionend(): void {
+        console.log("on_piece_transitionend() was called")
     }
 }

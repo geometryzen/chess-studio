@@ -8,6 +8,7 @@ import { point_from_s, Square } from "src/libs/Position";
 import { sorted_primary_variations } from "src/libs/PositionInfo";
 import { Tree } from "src/libs/Tree";
 import { ChangeEvent, ChessBoard, DragMoveEvent, DragStartEvent, DropEvent, MouseoutSquareEvent, MouseoverSquareEvent, MoveEndEvent, SnapbackEndEvent, SnapEndEvent } from "./chessboard.component";
+// import { Chess } from "chess.js";
 
 interface LegalMove {
     from: Square;
@@ -23,6 +24,7 @@ interface LegalMove {
     standalone: true
 })
 export class AppComponent implements OnInit, OnDestroy {
+    //     readonly game = new Chess();
     readonly tree = new Tree();
     @ViewChild(ChessBoard) boardA: ChessBoard | undefined;
     boardB: ChessBoardElement | null = null;
@@ -37,7 +39,10 @@ export class AppComponent implements OnInit, OnDestroy {
     status: string = "";
     position: string = "";
     pgn: string = "";
-    useAnimation: boolean = false;
+    /**
+     *
+     */
+    useAnimation: boolean = true;
     is_setup_mode: boolean = false;
     in_960_mode: boolean = false;
     orientation: "white" | "black" = "white";
@@ -148,10 +153,10 @@ export class AppComponent implements OnInit, OnDestroy {
                 // console.lg(`version: ${this.tree.version$.getValue()}`);
                 this.position = this.tree.fen();
                 if (this.boardA) {
-                    this.boardA.setPosition(this.position);
+                    this.boardA.setPosition(this.position, this.useAnimation);
                 }
                 if (this.boardB) {
-                    this.boardB.setPosition(this.position);
+                    this.boardB.setPosition(this.position, this.useAnimation);
                 }
                 if (this.engineNode) {
                     // Any further events will be discarded.
@@ -302,18 +307,19 @@ export class AppComponent implements OnInit, OnDestroy {
     }
     /**
      * It is safe to call this with illegal moves.
-     * @param s is a string of the form {from}{to}[{promotion}], (algebraic) even for captures. promotion is optional.
+     * @param move is a string of the form {from}{to}[{promotion}], (algebraic) even for captures. promotion is optional.
      */
-    move(s: string): LegalMove | null {
+    move(move: string): LegalMove | null {
+        // console.lg(`AppComponent.move(move=${move})`)
         // It is safe to call this with illegal moves.
-        if (typeof s !== "string") {
+        if (typeof move !== "string") {
             throw new Error();
         }
 
         const board = this.tree.node.position;
-        const source = point_from_s(s.slice(0, 2));
-        const target = point_from_s(s.slice(2, 4));
-        const promotion = s.slice(4, 1);
+        const source = point_from_s(move.slice(0, 2));
+        const target = point_from_s(move.slice(2, 4));
+        const promotion = move.slice(4, 1);
 
         if (!source) {
             throw new Error("invalid source square");
@@ -325,7 +331,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
         // First deal with old-school castling in Standard Chess...
 
-        s = board.c960_castling_converter(s);
+        const s = board.c960_castling_converter(move);
 
         // If a promotion character is required and not present, show the promotion chooser and return
         // without committing to anything.
@@ -350,7 +356,59 @@ export class AppComponent implements OnInit, OnDestroy {
             return null;
         }
 
+        // TODO: The problem here is that we actually modify the tree, incrementing the version, that causes
+        // an update of the board, which causes an animation...
         this.tree.make_move(s);
+
+        return { from: source.s, to: target.s };
+    }
+
+    compute_legal_move(move: string): LegalMove | null {
+        // console.lg(`AppComponent.compute_legal_move(move=${move})`)
+        // It is safe to call this with illegal moves.
+        if (typeof move !== "string") {
+            throw new Error();
+        }
+
+        const board = this.tree.node.position;
+        const source = point_from_s(move.slice(0, 2));
+        const target = point_from_s(move.slice(2, 4));
+        const promotion = move.slice(4, 1);
+
+        if (!source) {
+            throw new Error("invalid source square");
+        }
+
+        if (!target) {
+            throw new Error("invalid target square");
+        }
+
+        // First deal with old-school castling in Standard Chess...
+
+        const s = board.c960_castling_converter(move);
+
+        // If a promotion character is required and not present, show the promotion chooser and return
+        // without committing to anything.
+
+        if (s.length === 4) {
+            if ((board.piece(source) === "P" && source.y === 1) || (board.piece(source) === "p" && source.y === 6)) {
+                const illegal_reason = board.illegal(s + "q");
+                if (illegal_reason) {
+                    // console.lg(`move(${s}) - ${illegal_reason}`);
+                } else {
+                    this.show_promotiontable(s);
+                }
+                return null;
+            }
+        }
+
+        // The promised legality check...
+
+        const illegal_reason = board.illegal(s);
+        if (illegal_reason) {
+            // console.lg(`move(${s}) - ${illegal_reason}`);
+            return null;
+        }
 
         return { from: source.s, to: target.s };
     }
@@ -404,11 +462,19 @@ export class AppComponent implements OnInit, OnDestroy {
     onDragMove(event: DragMoveEvent): void { }
     onDropEvent(event: DropEvent): void {
         const { source, target, piece, newPosition, oldPosition, orientation, setAction } = event.detail;
+        // console.lg(`onDropEvent(source=${source}, target=${target})`);
         if (this.is_setup_mode) {
+            // Do nothing
         } else {
-            // see if the move is legal
+            // see if the move is legal, we really don't
             try {
-                const move = this.move(`${source}${target}`);
+                const move = this.compute_legal_move(`${source}${target}`);
+                if (move) {
+                    // Legal move
+                }
+                else {
+                    setAction("snapback");
+                }
                 /*
                 const ignore: Move = this.game.move({
                     from: source,
@@ -416,12 +482,6 @@ export class AppComponent implements OnInit, OnDestroy {
                     promotion: "q" // NOTE: always promote to a queen for example simplicity. What happens if not specified?
                 });
                 */
-                // illegal move
-                if (move === null) {
-                    setAction("snapback");
-                } else {
-                    // console.lg(`${JSON.stringify(move, null, 2)}`);
-                }
             } catch (e) {
                 // console.lg(`Illegal move: ${e}`);
                 setAction("snapback");
@@ -435,7 +495,8 @@ export class AppComponent implements OnInit, OnDestroy {
         */
     }
     onSnapEndEvent(event: SnapEndEvent): void {
-        const { piece, square } = event.detail;
+        const { piece, source, square } = event.detail;
+        // console.lg(`onSnapEndEvent piece=${piece} source=${source}, square=${square}`)
 
         if (this.is_setup_mode) {
             if (this.boardA) {
@@ -450,10 +511,19 @@ export class AppComponent implements OnInit, OnDestroy {
                 }
             }
         } else {
+            const move = this.move(`${source}${square}`);
+            if (move) {
+                // Legal move
+            }
+            else {
+                console.warn("Illegal move. Something is rotten in Denmark.");
+            }
+
             // update the board position after the piece snap
             // for castling, en passant, pawn promotion
             this.position = this.tree.fen();
         }
+        this.updateStatus();
     }
     onSnapbackEndEvent(event: SnapbackEndEvent): void { }
     onMoveEndEvent(event: MoveEndEvent): void { }

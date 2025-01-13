@@ -8,7 +8,11 @@
 import { copy_position } from "./copy_position.js";
 import { isString } from "./utils.js";
 
+// TODO: It would be nice for this to be restricted to the Piece types (12 of them).
 export type Piece = string;
+/**
+ * A mapping from a Square (string) to a Piece (string).
+ */
 export type PositionObject = { [square: string]: Piece | undefined };
 export type Position = PositionObject | "start" | string;
 
@@ -284,7 +288,7 @@ const squareDistance = (squareA: string, squareB: string) => {
 
 // returns an array of closest squares from square
 const createRadius = (square: string) => {
-    const squares = [];
+    const squares: { square: string; distance: number }[] = [];
 
     // calculate distance of all squares
     for (let i = 0; i < 8; i++) {
@@ -307,7 +311,7 @@ const createRadius = (square: string) => {
     });
 
     // just return the square code
-    const surroundingSquares = [];
+    const surroundingSquares: string[] = [];
     for (let i = 0; i < squares.length; i++) {
         surroundingSquares.push(squares[i].square);
     }

@@ -216,6 +216,7 @@ export class Tree {
      * @param move must be exactly a legal move, including having promotion char iff needed (e.g. e2e1q)
      */
     make_move(move: string): void {
+        // console.lg(`Tree.make_move(move=${move})`)
         // We want to detect whether making the move creates a new node in the tree.
         const orig_node_id = next_node_id;
 

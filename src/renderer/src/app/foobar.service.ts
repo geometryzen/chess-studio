@@ -85,7 +85,7 @@ declare global {
     providedIn: "root"
 })
 export class FoobarService {
-    constructor(private ngZone: NgZone) { }
+    constructor(private ngZone: NgZone) {}
 
     go(fen: string): Promise<void> {
         return window.foobar.go(fen);

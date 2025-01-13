@@ -5,15 +5,15 @@
  * https://github.com/justinfagnani/chessboard-element/blob/master/LICENSE.md
  */
 
-import { LitElement, html, nothing, render, AttributePart, noChange } from "lit";
+import { AttributePart, html, LitElement, noChange, nothing, render } from "lit";
 import { customElement, property, query } from "lit/decorators.js";
 import { directive, Directive, DirectiveParameters } from "lit/directive.js";
-import { styleMap, StyleInfo } from "lit/directives/style-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
+import { StyleInfo, styleMap } from "lit/directives/style-map.js";
 
-import { deepCopy, interpolateTemplate, isString, isFunction } from "./utils.js";
+import { blackPieces, calculatePositionFromMoves, COLUMNS, findClosestPiece, getSquareColor, normalizePosition, objToFen, Piece, Position, PositionObject, validMove, validPositionObject, validSquare, whitePieces } from "./chess-utils.js";
 import { styles } from "./chessboard-styles.js";
-import { objToFen, findClosestPiece, calculatePositionFromMoves, validMove, validSquare, validPositionObject, PositionObject, Position, Piece, COLUMNS, normalizePosition, getSquareColor, blackPieces, whitePieces } from "./chess-utils.js";
+import { deepCopy, interpolateTemplate, isFunction, isString } from "./utils.js";
 import { renderPiece as renderWikipediaSVGPiece } from "./wikipedia-pieces-svg.js";
 
 export { fenToObj, objToFen } from "./chess-utils.js";
@@ -591,7 +591,7 @@ export class ChessBoardElement extends LitElement {
 
         const style: Partial<CSSStyleDeclaration> = {
             opacity: "1",
-            transitionProperty: "",
+            transitionProperty: "", // Maybe should be none?
             transitionDuration: "0ms",
             ...styles
         };
