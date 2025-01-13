@@ -1,7 +1,6 @@
 import { booleanAttribute, Component, ElementRef, EventEmitter, Input, numberAttribute, OnDestroy, OnInit, Output } from "@angular/core";
-import { fenToObj } from "chessboard-element";
 import { Animation, calculateAnimations } from "src/libs/chessboard/calculate_animations";
-import { calculatePositionFromMoves, normalizePosition, objToFen, Piece, Position, PositionObject, validMove, validPositionObject, validSquare } from "src/libs/chessboard/chess-utils";
+import { calculatePositionFromMoves, fenToObj, normalizePosition, objToFen, Piece, Position, PositionObject, validMove, validPositionObject, validSquare } from "src/libs/chessboard/chess-utils";
 import { copy_position } from "src/libs/chessboard/copy_position";
 import { different_positions } from "src/libs/chessboard/equal_positions";
 import { update_position_source_target } from "src/libs/chessboard/update_position_source_target";
@@ -205,7 +204,7 @@ export class ChessBoard implements OnInit, OnDestroy {
     readonly ys = [0, 1, 2, 3, 4, 5, 6, 7] as const;
     @Input()
     set position(position: string) {
-        const pieces = fenToObj(position);
+        const pieces: PositionObject | false = fenToObj(position);
         if (pieces) {
             this.#set_current_position(pieces);
             // this.foobar(pieces);
@@ -215,6 +214,7 @@ export class ChessBoard implements OnInit, OnDestroy {
     }
 
     readonly pieces: PositionObject = {};
+
     @Input() orientation: "white" | "black" = "white";
     @Input({ alias: "draggable-pieces", transform: booleanAttribute }) draggablePieces: boolean = false;
     @Input({ alias: "spare-pieces", transform: booleanAttribute }) sparePieces: boolean = false;
@@ -224,6 +224,10 @@ export class ChessBoard implements OnInit, OnDestroy {
     @Input({ alias: "appear-speed", transform: numberAttribute }) appearSpeed: AnimationSpeed = DEFAULT_APPEAR_SPEED;
     @Input({ alias: "snap-speed", transform: numberAttribute }) snapSpeed: AnimationSpeed = DEFAULT_SNAP_SPEED;
     @Input({ alias: "snapback-speed", transform: numberAttribute }) snapbackSpeed: AnimationSpeed = DEFAULT_SNAPBACK_SPEED;
+    /**
+     * Set to 'trash' to remove pieces when they are dropped outside the board.
+     */
+    @Input({ alias: "drop-off-board" }) dropOffBoard: OffBoardAction = "snapback";
 
     #dragState?: DragState;
     /**
@@ -255,8 +259,6 @@ export class ChessBoard implements OnInit, OnDestroy {
      * A map from a square (Location) to an Animation.
      */
     private _animations = new Map<Location, Animation>();
-
-    dropOffBoard: OffBoardAction = "snapback";
     // I'm not sure whether these can be private?
     // Don't really want emit to be part of the public API.
     @Output("changed") private changedEvents$ = new EventEmitter<ChangeEvent>();
@@ -270,7 +272,7 @@ export class ChessBoard implements OnInit, OnDestroy {
     @Output("mouseover-square") mouseoverSquare$ = new EventEmitter<MouseoverSquareEvent>();
     @Output("mouseout-square") mouseoutSquare$ = new EventEmitter<MouseoutSquareEvent>();
 
-    constructor(private el: ElementRef) {
+    constructor(private el: ElementRef<HTMLElement>) {
         this.pieces["a8"] = "bR";
         this.pieces["b8"] = "bN";
         this.pieces["c8"] = "bB";
@@ -461,16 +463,20 @@ export class ChessBoard implements OnInit, OnDestroy {
         if (animation) {
             if (piece && (animation.type === "move-start" || (animation.type === "add-start" && this.draggablePieces))) {
                 // Position the moved piece absolutely at the source
-                const srcSquare = animation.type === "move-start" ? this._getSquareElement(animation.source) : this._getSparePieceElement(piece);
-                const destSquare = animation.type === "move-start" ? this._getSquareElement(animation.destination) : this._getSquareElement(animation.square);
+                const sourceSquare = animation.type === "move-start" ? this._getSquareElement(animation.source) : this._getSparePieceElement(piece);
+                const targetSquare = animation.type === "move-start" ? this._getSquareElement(animation.target) : this._getSquareElement(animation.square);
 
-                const srcSquareRect = srcSquare.getBoundingClientRect();
-                const destSquareRect = destSquare.getBoundingClientRect();
+                if (!sourceSquare) {
+                    console.warn(JSON.stringify(animation));
+                }
+
+                const sourceSquareRect = sourceSquare.getBoundingClientRect();
+                const targetSquareRect = targetSquare.getBoundingClientRect();
 
                 return {
                     position: "absolute",
-                    left: `${srcSquareRect.left - destSquareRect.left}px`,
-                    top: `${srcSquareRect.top - destSquareRect.top}px`,
+                    left: `${sourceSquareRect.left - targetSquareRect.left}px`,
+                    top: `${sourceSquareRect.top - targetSquareRect.top}px`,
                     width: `${this._squareSize}px`,
                     height: `${this._squareSize}px`
                 };
@@ -537,7 +543,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         const sparePieceContainerEl = e.currentTarget as HTMLElement;
         const pieceEl = sparePieceContainerEl.querySelector("[part~=piece]");
         //
-        const piece = pieceEl!.getAttribute("piece")!;
+        const piece = pieceEl!.getAttribute("piece")! as Piece;
         e.preventDefault();
         const pos = e instanceof MouseEvent ? e : e.changedTouches[0];
         this._beginDraggingPiece("spare", piece, pos.clientX, pos.clientY);
@@ -618,7 +624,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         }
     };
 
-    private _beginDraggingPiece(source: string, piece: string, x: number, y: number) {
+    private _beginDraggingPiece(source: string, piece: Piece, x: number, y: number) {
         // Fire cancelable drag-start event
         const dragStartEvent = new CustomEvent("drag-start", {
             bubbles: true,
@@ -966,7 +972,7 @@ export class ChessBoard implements OnInit, OnDestroy {
                     type: "add-start"
                 });
             } else if (animation.type === "move" || animation.type === "move-start") {
-                this._animations.set(animation.destination, {
+                this._animations.set(animation.target, {
                     ...animation,
                     type: "move-start"
                 });
@@ -983,7 +989,7 @@ export class ChessBoard implements OnInit, OnDestroy {
         this._animations.clear();
         for (const animation of animations) {
             if (animation.type === "move" || animation.type === "move-start") {
-                this._animations.set(animation.destination, animation);
+                this._animations.set(animation.target, animation);
             } else {
                 this._animations.set(animation.square, animation);
             }

@@ -1,36 +1,36 @@
-import { findClosestPiece, PositionObject } from "./chess-utils";
+import { findClosestPiece, Piece, PositionObject } from "./chess-utils";
 import { copy_position } from "./copy_position";
 
 export type Animation =
     | {
-          type: "move";
-          source: string;
-          destination: string;
-          piece: string;
-          square?: undefined;
-      }
+        type: "move";
+        source: string;
+        target: string;
+        piece: string;
+        square?: undefined;
+    }
     | {
-          type: "move-start";
-          source: string;
-          destination: string;
-          piece: string;
-          square?: undefined;
-      }
+        type: "move-start";
+        source: string;
+        target: string;
+        piece: string;
+        square?: undefined;
+    }
     | {
-          type: "add";
-          square: string;
-          piece: string;
-      }
+        type: "add";
+        square: string;
+        piece: string;
+    }
     | {
-          type: "clear";
-          square: string;
-          piece: string;
-      }
+        type: "clear";
+        square: string;
+        piece: Piece;
+    }
     | {
-          type: "add-start";
-          square: string;
-          piece: string;
-      };
+        type: "add-start";
+        square: string;
+        piece: string;
+    };
 
 function remove_pieces_that_are_the_same_in_both_positions(pos1: PositionObject, pos2: PositionObject): void {
     for (const i in pos2) {
@@ -62,7 +62,7 @@ export function calculateAnimations(starting_position: Readonly<PositionObject>,
             animations.push({
                 type: "move",
                 source: closestPiece,
-                destination: i,
+                target: i,
                 piece: endPos[i]!
             });
 

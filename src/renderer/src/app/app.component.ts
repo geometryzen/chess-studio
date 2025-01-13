@@ -27,7 +27,7 @@ export class AppComponent implements OnInit, OnDestroy {
     //     readonly game = new Chess();
     readonly tree = new Tree();
     @ViewChild(ChessBoard) boardA: ChessBoard | undefined;
-    boardB: ChessBoardElement | null = null;
+    boardC: ChessBoardElement | null = null;
     /**
      * The node that the Chess engine is currently analyzing.
      * This is used to ensure that the engine analysis is applied to the correct node,
@@ -54,32 +54,32 @@ export class AppComponent implements OnInit, OnDestroy {
         // console.lg("chessboard");
         await window.customElements.whenDefined("chess-board");
         // The idea here is to set up the board and observables once and them use them in different modes.
-        this.boardB = document.getElementById("board-ui") as ChessBoardElement | null;
-        if (this.boardB) {
-            this.change$ = fromEvent<ChangeEvent>(this.boardB, "change");
-            this.boardB.sparePieces = false;
-            this.boardB.draggablePieces = true;
+        this.boardC = document.getElementById("board-ui") as ChessBoardElement | null;
+        if (this.boardC) {
+            this.change$ = fromEvent<ChangeEvent>(this.boardC, "change");
+            this.boardC.sparePieces = false;
+            this.boardC.draggablePieces = true;
 
             this.change$.subscribe((event) => {
                 this.onChange(event);
             });
-            this.dragStart$ = fromEvent<DragStartEvent>(this.boardB, "drag-start");
+            this.dragStart$ = fromEvent<DragStartEvent>(this.boardC, "drag-start");
             this.dragStart$.subscribe((event) => {
                 this.onDragStart(event);
             });
-            fromEvent<DragMoveEvent>(this.boardB, "drag-move").subscribe((event) => {
+            fromEvent<DragMoveEvent>(this.boardC, "drag-move").subscribe((event) => {
                 this.onDragMove(event);
             });
-            fromEvent<DropEvent>(this.boardB, "drop").subscribe((event) => {
+            fromEvent<DropEvent>(this.boardC, "drop").subscribe((event) => {
                 this.onDropEvent(event);
             });
-            fromEvent<SnapEndEvent>(this.boardB, "snap-end").subscribe((event) => {
+            fromEvent<SnapEndEvent>(this.boardC, "snap-end").subscribe((event) => {
                 this.onSnapEndEvent(event);
             });
-            fromEvent<SnapbackEndEvent>(this.boardB, "snapback-end").subscribe((event) => {
+            fromEvent<SnapbackEndEvent>(this.boardC, "snapback-end").subscribe((event) => {
                 this.onSnapbackEndEvent(event);
             });
-            fromEvent<MoveEndEvent>(this.boardB, "move-end").subscribe((event) => {
+            fromEvent<MoveEndEvent>(this.boardC, "move-end").subscribe((event) => {
                 this.onMoveEndEvent(event);
             });
         }
@@ -89,8 +89,8 @@ export class AppComponent implements OnInit, OnDestroy {
             if (this.boardA) {
                 this.boardA.setPosition(this.position, this.useAnimation);
             }
-            if (this.boardB) {
-                this.boardB.setPosition(this.position, this.useAnimation);
+            if (this.boardC) {
+                this.boardC.setPosition(this.position, this.useAnimation);
             }
             this.exitSetupMode();
         });
@@ -100,8 +100,8 @@ export class AppComponent implements OnInit, OnDestroy {
             if (this.boardA) {
                 this.boardA.clear(this.useAnimation);
             }
-            if (this.boardB) {
-                this.boardB.clear(this.useAnimation);
+            if (this.boardC) {
+                this.boardC.clear(this.useAnimation);
             }
             this.enterSetupMode();
         });
@@ -155,8 +155,8 @@ export class AppComponent implements OnInit, OnDestroy {
                 if (this.boardA) {
                     this.boardA.setPosition(this.position, this.useAnimation);
                 }
-                if (this.boardB) {
-                    this.boardB.setPosition(this.position, this.useAnimation);
+                if (this.boardC) {
+                    this.boardC.setPosition(this.position, this.useAnimation);
                 }
                 if (this.engineNode) {
                     // Any further events will be discarded.
@@ -234,9 +234,9 @@ export class AppComponent implements OnInit, OnDestroy {
             this.boardA.sparePieces = true;
             this.boardA.dropOffBoard = "trash";
         }
-        if (this.boardB) {
-            this.boardB.sparePieces = true;
-            this.boardB.dropOffBoard = "trash";
+        if (this.boardC) {
+            this.boardC.sparePieces = true;
+            this.boardC.dropOffBoard = "trash";
         }
         this.updateStatus();
     }
@@ -245,9 +245,9 @@ export class AppComponent implements OnInit, OnDestroy {
             this.boardA.sparePieces = false;
             this.boardA.dropOffBoard = "snapback";
         }
-        if (this.boardB) {
-            this.boardB.sparePieces = false;
-            this.boardB.dropOffBoard = "snapback";
+        if (this.boardC) {
+            this.boardC.sparePieces = false;
+            this.boardC.dropOffBoard = "snapback";
         }
         this.is_setup_mode = false;
         try {
@@ -259,8 +259,8 @@ export class AppComponent implements OnInit, OnDestroy {
                     this.tree.load(fen);
                 }
             }
-            if (this.boardB) {
-                const fen = `${this.boardB.fen()} w KQkq - 0 1`;
+            if (this.boardC) {
+                const fen = `${this.boardC.fen()} w KQkq - 0 1`;
                 // console.lg("fen", fen);
                 if (fen) {
                     // The
@@ -504,8 +504,8 @@ export class AppComponent implements OnInit, OnDestroy {
                 if (position) {
                     this.position = position;
                 }
-            } else if (this.boardB) {
-                const position = this.boardB.fen();
+            } else if (this.boardC) {
+                const position = this.boardC.fen();
                 if (position) {
                     this.position = position;
                 }

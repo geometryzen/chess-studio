@@ -9,7 +9,9 @@ import { copy_position } from "./copy_position.js";
 import { isString } from "./utils.js";
 
 // TODO: It would be nice for this to be restricted to the Piece types (12 of them).
-export type Piece = string;
+export type WhitePiece = "wK" | "wQ" | "wR" | "wB" | "wN" | "wP";
+export type BlackPiece = "bK" | "bQ" | "bR" | "bB" | "bN" | "bP";
+export type Piece = WhitePiece | BlackPiece;
 /**
  * A mapping from a Square (string) to a Piece (string).
  */
@@ -20,8 +22,8 @@ const RUN_ASSERTS = true;
 export const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 export const COLUMNS = "abcdefgh".split("");
 
-export const whitePieces = ["wK", "wQ", "wR", "wB", "wN", "wP"];
-export const blackPieces = ["bK", "bQ", "bR", "bB", "bN", "bP"];
+export const whitePieces = ["wK", "wQ", "wR", "wB", "wN", "wP"] as const;
+export const blackPieces = ["bK", "bQ", "bR", "bB", "bN", "bP"] as const;
 
 export const getSquareColor = (square: string) => (square.charCodeAt(0) % 2 ^ square.charCodeAt(1) % 2 ? "white" : "black");
 
@@ -153,11 +155,11 @@ if (RUN_ASSERTS) {
 const fenToPieceCode = (piece: string) => {
     // black piece
     if (piece.toLowerCase() === piece) {
-        return "b" + piece.toUpperCase();
+        return ("b" + piece.toUpperCase()) as Piece;
     }
 
     // white piece
-    return "w" + piece.toUpperCase();
+    return ("w" + piece.toUpperCase()) as Piece;
 };
 
 // convert bP, wK, etc code to FEN structure

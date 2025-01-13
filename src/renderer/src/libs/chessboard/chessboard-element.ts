@@ -44,34 +44,34 @@ export type OffBoardAction = "trash" | "snapback";
 
 export type Animation =
     | {
-          type: "move";
-          source: string;
-          destination: string;
-          piece: string;
-          square?: undefined;
-      }
+        type: "move";
+        source: string;
+        destination: string;
+        piece: Piece;
+        square?: undefined;
+    }
     | {
-          type: "move-start";
-          source: string;
-          destination: string;
-          piece: string;
-          square?: undefined;
-      }
+        type: "move-start";
+        source: string;
+        destination: string;
+        piece: Piece;
+        square?: undefined;
+    }
     | {
-          type: "add";
-          square: string;
-          piece: string;
-      }
+        type: "add";
+        square: string;
+        piece: Piece;
+    }
     | {
-          type: "clear";
-          square: string;
-          piece: string;
-      }
+        type: "clear";
+        square: string;
+        piece: Piece;
+    }
     | {
-          type: "add-start";
-          square: string;
-          piece: string;
-      };
+        type: "add-start";
+        square: string;
+        piece: Piece;
+    };
 
 type DraggingDragState = {
     state: "dragging";
@@ -356,7 +356,7 @@ export class ChessBoardElement extends LitElement {
      * @default Function
      */
     @property({ attribute: false })
-    renderPiece?: RenderPieceFunction = (piece: string, container: HTMLElement) => {
+    renderPiece?: RenderPieceFunction = (piece: Piece, container: HTMLElement) => {
         let pieceImage: string | undefined = undefined;
         if (isString(this.pieceTheme)) {
             pieceImage = interpolateTemplate(this.pieceTheme, { piece: piece });
@@ -462,9 +462,9 @@ export class ChessBoardElement extends LitElement {
             <div
                 id="dragged-pieces"
                 style=${styleMap({
-                    width: `${this._squareSize}px`,
-                    height: `${this._squareSize}px`
-                })}
+            width: `${this._squareSize}px`,
+            height: `${this._squareSize}px`
+        })}
             >
                 ${this._renderDraggedPiece()}
             </div>
@@ -584,7 +584,7 @@ export class ChessBoardElement extends LitElement {
         return html`<div part="board" style=${styleMap(styles)}>${squares}</div>`;
     }
 
-    _renderPiece(piece: Piece | undefined, styles: Partial<CSSStyleDeclaration>, isDragSource?: boolean, id?: string, part?: string) {
+    _renderPiece(piece: Piece | undefined | "", styles: Partial<CSSStyleDeclaration>, isDragSource?: boolean, id?: string, part?: string) {
         if (piece === undefined) {
             return nothing;
         }
@@ -695,7 +695,7 @@ export class ChessBoardElement extends LitElement {
         }
         const sparePieceContainerEl = e.currentTarget as HTMLElement;
         const pieceEl = sparePieceContainerEl.querySelector("[part~=piece]");
-        const piece = pieceEl!.getAttribute("piece")!;
+        const piece = pieceEl!.getAttribute("piece")! as Piece;
         e.preventDefault();
         const pos = e instanceof MouseEvent ? e : e.changedTouches[0];
         this._beginDraggingPiece("spare", piece, pos.clientX, pos.clientY);
@@ -1085,7 +1085,7 @@ export class ChessBoardElement extends LitElement {
         });
     }
 
-    private _beginDraggingPiece(source: string, piece: string, x: number, y: number) {
+    private _beginDraggingPiece(source: string, piece: Piece, x: number, y: number) {
         // Fire cancalable drag-start event
         const event = new CustomEvent("drag-start", {
             bubbles: true,
